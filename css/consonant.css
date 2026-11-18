@@ -1,0 +1,149 @@
+/* ===== 01 자음 페이지 ===== */
+
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+body[data-view="penta"] { cursor: default; }
+
+/* 나무는 화면 전체 캔버스에 그림 (배경은 body 의 흰색) */
+#tree {
+  position: fixed;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none; /* 손가락으로 획을 긋고 끌 수 있게 */
+  cursor: crosshair;  /* 어디든 긋는 곳. 다 자라면 js 가 pointer 로 바꿈 */
+}
+body[data-view="penta"] #tree { visibility: hidden; }
+
+/* ---------- 첫 화면: 화면 아래로 잘린 커다란 오각형 원판 ---------- */
+.penta {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  background: var(--bg);
+  cursor: grab;
+}
+.penta.is-dragging { cursor: grabbing; }
+body[data-view="tree"] .penta { visibility: hidden; }
+
+/* 크기와 자리는 js/penta.js 가 화면에 맞춰 정함 (원판 중심 = 화면 아래 가장자리 조금 밑) */
+.penta-svg {
+  position: absolute;
+  overflow: visible;
+  color: var(--fg);
+  touch-action: none;
+  outline: none;
+}
+
+.penta-art { transition: opacity .45s ease; }
+.penta.is-dim .penta-art { opacity: 0; }
+
+/* 원판 회전: 놓으면 가장 가까운 칸이 위로 오며 살짝 튕김 */
+.wheel {
+  transform-box: view-box;
+  transform-origin: 0 0; /* viewBox 의 (0,0) = 오각형 중심 */
+  transform: rotate(var(--rot, 0deg));
+  transition: transform .6s var(--ease-spring);
+}
+.penta.is-dragging .wheel { transition: none; }
+
+.edge {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.divider {
+  stroke: currentColor;
+  stroke-opacity: .25;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.cell-bg { fill: transparent; transition: fill .25s; }
+/* 맨 위에 온 칸이 고른 칸. ㄱ 이 위에 있을 때만 눌러서 열 수 있음 */
+.cell.is-open.is-top { cursor: pointer; }
+.penta:not(.is-dragging) .cell.is-open.is-top:hover .cell-bg,
+.penta-svg:focus-visible .cell.is-top .cell-bg { fill: var(--surface); }
+
+.letter {
+  fill: none;
+  stroke: currentColor;
+  stroke-linejoin: miter;
+}
+.cell.is-locked .letter { opacity: .25; } /* 아직 비어 있는 칸 */
+.cell.is-flying .letter { visibility: hidden; }
+
+/* 칸의 ㄱ 이 나무 뿌리 자리로 날아가는 동안 쓰는 층 */
+.flight {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  color: var(--fg);
+}
+
+/* ---------- 나무 화면: 왼쪽 위 오각형 버튼 ---------- */
+/* 두 버튼 크기: 화면이 클수록 같이 커짐 (64px ~ 96px, 아이콘은 그 60%) */
+:root { --nav-size: clamp(64px, 4.5vw, 96px); }
+
+.to-penta {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 4;
+  display: none;
+  width: var(--nav-size);
+  height: var(--nav-size);
+  padding: calc(var(--nav-size) * .2);
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--fg);
+  opacity: .8;
+  cursor: pointer;
+  transition: opacity .2s;
+}
+.to-penta svg { display: block; width: 100%; height: 100%; }
+.to-penta:hover,
+.to-penta:focus-visible { opacity: 1; }
+.to-penta:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+body[data-view="tree"] .to-penta { display: block; }
+
+/* ---------- 오각형 화면: 오른쪽 위 모음(ㅏ) 버튼 ---------- */
+.to-vowel {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 4;
+  display: none;
+  width: var(--nav-size);
+  height: var(--nav-size);
+  padding: calc(var(--nav-size) * .2);
+  border-radius: 50%;
+  color: var(--fg);
+  opacity: .8;
+  transition: opacity .2s;
+}
+.to-vowel svg { display: block; width: 100%; height: 100%; }
+.to-vowel:hover,
+.to-vowel:focus-visible { opacity: 1; }
+.to-vowel:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+body[data-view="penta"] .to-vowel { display: block; }
+.penta.is-dim ~ .to-vowel { opacity: 0; pointer-events: none; } /* ㄱ 이 나무로 날아가는 동안 */
+
+/* 모음 페이지로 넘어갈 때 화면이 잠깐 비워짐 */
+body.is-leaving { opacity: 0; transition: opacity .28s ease; }

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>모음 · 한글의 과학과 철학</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+  <link rel="stylesheet" href="css/common.css">
+  <link rel="stylesheet" href="css/vowel.css">
+</head>
+<body>
+  <!-- 하늘: 점(해)이 있는 쪽에 따라 아침(ㅏ)·한낮(ㅗ)·밤(ㅓ)으로 이어서 바뀜. 해 쪽은 밝고 반대쪽은 그늘, 어두워지면 별 -->
+  <div class="sky" id="sky" aria-hidden="true">
+    <div class="glow" id="glow"></div>
+    <div class="stars" id="stars"></div>
+  </div>
+
+  <!-- 하늘 위·땅 아래: 위(ㅗ)로 돌리면 구름 사이로 떠오르고, 아래(ㅜ)로 돌리면 땅속으로 내려감 (js/vowel.js 가 그림) -->
+  <canvas class="world" id="world" aria-hidden="true"></canvas>
+
+  <!-- 그림자: 점(해) 반대쪽으로 드리운 작대기 그림자 (js/vowel.js 가 그림) -->
+  <canvas class="shade" id="shade" aria-hidden="true"></canvas>
+
+  <!-- 오른쪽 위: 음양 표시 -->
+  <span class="pol-badge">
+    <span class="pol-icon" aria-hidden="true">
+      <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+      <svg class="i-mid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16Z" fill="currentColor"/></svg>
+    </span>
+    <span id="pol-name">중(中)</span>
+  </span>
+
+  <!-- 화면 중앙: 잡아 돌리는 작대기 (ㅣ ↔ ㅡ, 방향키로도 돌아감). 배경을 클릭할 때마다 점이 날아와 붙음: 1개 ㅏ, 2개 ㅑ -->
+  <div class="glyph-area" aria-hidden="true">
+    <div class="glyph" id="glyph" data-count="0">
+      <div class="long"></div>
+      <div class="mark mark-a" data-state="none"></div>
+      <div class="mark mark-b" data-state="none"></div>
+    </div>
+  </div>
+
+  <p class="sr-only" id="live" aria-live="polite"></p>
+
+  <!-- 작대기와 획이 만나는 곳을 먹물처럼 녹여 잇는 필터 (blur → 알파 경계 다시 세우기) -->
+  <svg class="defs" width="0" height="0" aria-hidden="true">
+    <filter id="goo" color-interpolation-filters="sRGB">
+      <feGaussianBlur id="goo-blur" in="SourceGraphic" stdDeviation="6" result="blur"/>
+      <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -9" result="goo"/>
+      <feComposite in="SourceGraphic" in2="goo" operator="atop"/>
+    </filter>
+  </svg>
+
+  <script src="js/vowel.js"></script>
+</body>
+</html>

@@ -1,0 +1,187 @@
+/* ===== 02 모음 페이지 ===== */
+
+/* 하늘: 점(해)이 있는 쪽에 따라 아침(ㅏ)·한낮(ㅗ)·밤(ㅓ)으로 무채색이 이어서 바뀜. 아래(ㅜ)는 땅속.
+   바탕(--bg), 해 쪽에서 비치는 빛과 반대쪽 그늘(.glow), 별의 진하기는 js/vowel.js 가 매 프레임 정함.
+   하늘이 어두워지면 글자색(--fg)이 밝게 바뀜 */
+body { transition: color .3s ease; } /* 바탕은 매 프레임 바뀌므로 전환 없음 */
+
+.sky {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+.glow { position: absolute; inset: 0; }
+.stars {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+
+/* 구름·땅(.world)과 작대기 그림자(.shade) */
+.world,
+.shade {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.star {
+  position: absolute;
+  width: var(--r);
+  height: var(--r);
+  margin: calc(var(--r) / -2) 0 0 calc(var(--r) / -2);
+  border-radius: 50%;
+  background: var(--off-white);
+  animation: twinkle var(--tw, 3s) ease-in-out var(--td, 0s) infinite;
+}
+@keyframes twinkle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .3; }
+}
+
+body[data-drag] { cursor: grabbing; }
+
+/* ---------- 오른쪽 위: 음양 표시 ---------- */
+.pol-badge {
+  position: fixed;
+  top: 16px;
+  right: 20px;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.pol-icon { position: relative; width: 24px; height: 24px; }
+.pol-icon svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transition: opacity .5s, transform .6s var(--ease-spring);
+}
+.i-moon { opacity: 0; transform: rotate(-60deg) scale(.6); }
+body[data-polarity="yin"] .i-sun { opacity: 0; transform: rotate(60deg) scale(.6); }
+body[data-polarity="yin"] .i-moon { opacity: 1; transform: none; }
+/* 점이 붙기 전: 중(中) — 반쯤 찬 원 */
+.i-mid { opacity: 0; transform: scale(.6); }
+body[data-polarity="mid"] .i-sun { opacity: 0; transform: scale(.6); }
+body[data-polarity="mid"] .i-mid { opacity: 1; transform: none; }
+
+/* 점이 붙는 순간 그 자리에서 퍼지는 빛 (해가 뜸) */
+.burst {
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(255,255,255,.95) 0, rgba(255,255,255,.55) 12%, rgba(255,255,255,.18) 35%, rgba(255,255,255,0) 60%);
+  animation: burst 1.6s cubic-bezier(.15, .7, .3, 1) forwards;
+}
+@keyframes burst {
+  from { transform: scale(.02); opacity: 1; }
+  60% { opacity: .85; }
+  to { transform: scale(1); opacity: 0; }
+}
+
+/* ---------- 화면 중앙: 회전하는 작대기 ---------- */
+.glyph-area {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+/* 안쪽 크기는 모두 cqw(글자 판 너비 기준) */
+.glyph {
+  position: relative;
+  width: min(440px, 82vw, calc(100vh - 140px));
+  width: min(440px, 82vw, calc(100svh - 140px));
+  aspect-ratio: 1;
+  container-type: inline-size;
+  border-radius: 50%; /* 잡을 수 있는 영역을 원으로 */
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  filter: url(#goo); /* 획이 작대기에 녹아 붙는 접합부 */
+  transform: rotate(var(--angle, 0deg));
+  transition: transform .6s var(--ease-spring);
+}
+
+.defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+body[data-drag="glyph"] .glyph { transition: transform .05s linear; } /* 직접 잡으면 손을 바로 따라옴 */
+
+/* 작대기: 사람(ㅣ) — 90° 돌면 땅(ㅡ) */
+.long {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 6.4cqw;
+  height: 62cqw;
+  margin: -31cqw 0 0 -3.2cqw;
+  border-radius: 1.6cqw;
+  background: var(--fg);
+  transition: background-color .3s;
+}
+
+/* 짧은 획 — 작대기 한가운데서부터 오른쪽으로 뻗어 나온 모양(겹쳐서 틈이 없음).
+   --y 는 위아래 위치(ㅑ 일 때 벌어짐) */
+.mark {
+  --y: 0cqw;
+  --ease-liquid: cubic-bezier(.22, 1, .36, 1);
+  position: absolute;
+  left: 50%;
+  top: calc(50% - 3.2cqw + var(--y));
+  width: 24.2cqw;
+  height: 6.4cqw;
+  border-radius: 0 1.6cqw 1.6cqw 0;
+  background: var(--fg);
+  transition:
+    left .75s var(--ease-liquid),
+    top .6s var(--ease-spring),
+    width .75s var(--ease-liquid),
+    height .6s var(--ease-liquid),
+    border-radius .5s ease,
+    background-color .3s;
+}
+.mark[data-state="none"] { display: none; }
+/* 날아온 점이 막 내려앉은 순간: 작대기 옆의 둥근 점 */
+.mark[data-state="dot"] {
+  left: calc(50% + 9cqw);
+  top: calc(50% - 5cqw + var(--y));
+  width: 10cqw;
+  height: 10cqw;
+  border-radius: 50%;
+}
+.mark.no-anim { transition: none; }
+.mark[data-state="stroke"] { cursor: pointer; } /* 붙은 획은 눌러서 뗄 수 있음 */
+
+/* 점이 두 개가 되면(ㅑ) 첫 획은 위로, 둘째 획은 아래로 */
+.glyph[data-count="2"] .mark-a { --y: -9cqw; }
+.glyph[data-count="2"] .mark-b { --y: 9cqw; }
+
+/* ---------- 배경 클릭 시 나타나 날아가는 점 ---------- */
+.flyer {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 3;
+  width: var(--size);
+  height: var(--size);
+  margin: calc(var(--size) / -2) 0 0 calc(var(--size) / -2);
+  border-radius: 50%;
+  background: var(--fg);
+  pointer-events: none;
+  animation: pop .4s var(--ease-spring) both;
+}
+@keyframes pop {
+  from { scale: 0; }
+  to { scale: 1; }
+}
+.flyer.is-leaving { animation: none; } /* 떼어 낸 점: 크기·투명도는 js 가 줄여 감 */
