@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>자음 · 한글의 과학과 철학</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
   <link rel="stylesheet" href="css/common.css">
   <link rel="stylesheet" href="css/consonant.css">
 </head>
@@ -14,16 +15,59 @@
   <canvas id="tree" role="img"
           aria-label="맨 아래의 ㄱ 에서 글자로 된 나무가 자라는 그림. 화면 어디든 가로로 한 획 그으면 획이 더해져 ㅋ, ㄱ 모양(가로로 가다 꺾어 아래로)을 그리면 ㄱ 을 나란히 써서 ㄲ 이 됩니다."></canvas>
 
+  <!-- 나무 화면 왼쪽: 가획·병서 설명. 같은 자리에 지금 안내하거나 방금 한 쪽 하나만 보임 -->
+  <aside class="rules" id="rules" aria-label="자음을 만드는 두 원리">
+    <div class="rule" data-rule="가획">
+      <p class="rule-name">가획 <span class="rule-hanja">加劃</span></p>
+      <p class="rule-eg">ㄱ → ㅋ</p>
+      <p class="rule-desc">기본자에 획을 하나 더해, 소리가 더 세게 남을 나타냅니다.</p>
+    </div>
+    <div class="rule" data-rule="병서">
+      <p class="rule-name">병서 <span class="rule-hanja">竝書</span></p>
+      <p class="rule-eg">ㄱ → ㄲ</p>
+      <p class="rule-desc">같은 글자를 나란히 써서, 된소리를 나타냅니다.</p>
+    </div>
+  </aside>
+
   <!-- 첫 화면: 화면 아래로 잘린 오각형 원판. 다섯 칸에 ㄱ ㄴ ㅁ ㅅ ㅇ (칸은 js/penta.js 가 그림) -->
   <section class="penta" id="penta" aria-label="다섯 기본 자음">
     <svg class="penta-svg" viewBox="-100 -100 200 200"></svg>
+
+    <!-- 맨 위 칸 글자 아래: 그 글자의 오행 설명. 원판을 돌리면 맨 위 칸에 맞춰 바뀜 (js/penta.js) -->
+    <!-- 바탕: 훈민정음 해례본 제자해 "천지의 도는 음양오행일 뿐이니, 사람의 소리도 음양의 이치가 있다" -->
+    <div class="elements" id="elements">
+      <article class="element" data-k="0">
+        <p class="el-eyebrow">음양오행 陰陽五行</p>
+        <p class="el-name"><span class="el-hanja">木</span>나무 목</p>
+        <p class="el-sense">성장 · 뻗어 나감</p>
+        <p class="el-meta">혀뿌리를 본뜸 · ㄱ → ㅋ</p>      </article>
+      <article class="element" data-k="1">
+        <p class="el-eyebrow">음양오행 陰陽五行</p>
+        <p class="el-name"><span class="el-hanja">火</span>불 화</p>
+        <p class="el-sense">확산 · 타오름</p>
+        <p class="el-meta">혀를 본뜸 · ㄴ → ㄷ → ㅌ</p>      </article>
+      <article class="element" data-k="2">
+        <p class="el-eyebrow">음양오행 陰陽五行</p>
+        <p class="el-name"><span class="el-hanja">土</span>흙 토</p>
+        <p class="el-sense">모임 · 포용</p>
+        <p class="el-meta">입을 본뜸 · ㅁ → ㅂ → ㅍ</p>      </article>
+      <article class="element" data-k="3">
+        <p class="el-eyebrow">음양오행 陰陽五行</p>
+        <p class="el-name"><span class="el-hanja">金</span>쇠 금</p>
+        <p class="el-sense">단단함 · 날카로움</p>
+        <p class="el-meta">이를 본뜸 · ㅅ → ㅈ → ㅊ</p>      </article>
+      <article class="element" data-k="4">
+        <p class="el-eyebrow">음양오행 陰陽五行</p>
+        <p class="el-name"><span class="el-hanja">水</span>물 수</p>
+        <p class="el-sense">흐름 · 통함</p>
+        <p class="el-meta">목구멍을 본뜸 · ㅇ → ㆆ → ㅎ</p>      </article>
+    </div>
   </section>
 
   <!-- 나무 화면에서 오각형으로 돌아가기 -->
   <button class="to-penta" id="to-penta" type="button" aria-label="오각형으로 돌아가기">
     <svg viewBox="-12 -12 24 24" aria-hidden="true">
-      <path d="M0 -10 L9.51 -3.09 L5.88 8.09 L-5.88 8.09 L-9.51 -3.09 Z"
-            fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+      <circle cx="0" cy="0" r="9" fill="none" stroke="currentColor" stroke-width="2.2"/>
     </svg>
   </button>
 

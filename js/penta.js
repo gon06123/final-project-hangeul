@@ -20,8 +20,7 @@
   const ARM = 0.86;
   const G_PATH = `M${-ARM} ${-1 + T / 2} H0 V0`;
 
-  const R = 90;         // 오각형 꼭짓점까지 (viewBox 단위, viewBox 는 -100~100)
-  const LETTER = 28;    // 칸 안 글자 크기
+  const R = 90;         // 원 반지름 (viewBox 단위, viewBox 는 -100~100)
   const STEP = 72;      // 한 칸 = 72°
   const CELLS = [
     { ch: 'ㄱ', open: true },
@@ -37,8 +36,13 @@
     return node;
   };
   const at = (deg, r) => [r * Math.cos((deg * Math.PI) / 180), r * Math.sin((deg * Math.PI) / 180)];
-  const vertex = (k) => at(-90 + k * STEP, R);
-  const edgeMid = (k) => at(-90 + k * STEP + STEP / 2, R * Math.cos(Math.PI / 5));
+  const border = (k) => at(-90 + k * STEP + STEP / 2, R); // 칸 k 와 k+1 사이 경계가 원과 만나는 점
+  // 칸 k 의 부채꼴 (원 중심에서 72°)
+  const wedge = (k) => {
+    const [x0, y0] = border(k - 1);
+    const [x1, y1] = border(k);
+    return `M0 0 L${x0} ${y0} A${R} ${R} 0 0 1 ${x1} ${y1} Z`;
+  };
 
   // 가운데가 (0,0), 높이 1 인 글자 모양
   function letter(ch) {
@@ -53,7 +57,8 @@
     } else if (ch === 'ㅁ') {
       g.append(el('path', { d: 'M-0.365 -0.395 H0.365 V0.395 H-0.365 Z' }));
     } else if (ch === 'ㅅ') {
-      g.append(el('path', { d: 'M-0.47 0.5 L0 -0.32 L0.47 0.5' }));
+      // 꼭대기는 뾰족하지 않게 수평으로 잘라 평평하게(bevel). 잘린 만큼 꼭짓점을 올려 높이는 그대로
+      g.append(el('path', { d: 'M-0.47 0.5 L0 -0.46 L0.47 0.5', 'stroke-linejoin': 'bevel' }));
     } else if (ch === 'ㅇ') {
       g.append(el('circle', { cx: 0, cy: 0, r: 0.5 - T / 2 }));
     }
@@ -64,6 +69,10 @@
   const art = el('g', { class: 'penta-art' });   // 나무로 넘어갈 때 사라지는 층
   const wheel = el('g', { class: 'wheel' });     // 도는 층
   const cells = [];
+  const marks = []; // 칸마다 글자 + 글자 뒤 바탕
+
+  // 테두리 원을 먼저 그려서, 선 위에 얹힌 글자가 선을 가리게 함
+  wheel.append(el('circle', { class: 'edge', cx: 0, cy: 0, r: R }));
 
   CELLS.forEach((c, k) => {
     const cell = el('g', {
@@ -71,25 +80,17 @@
       'data-k': k,
       'aria-hidden': 'true',
     });
-    const shape = [[0, 0], edgeMid(k - 1), vertex(k), edgeMid(k)];
-    cell.append(el('polygon', { class: 'cell-bg', points: shape.map((p) => p.join(',')).join(' ') }));
+    cell.append(el('path', { class: 'cell-bg', d: wedge(k) }));
 
-    // 글자는 바깥을 향해 세움 → 맨 위로 왔을 때 똑바로 섬
-    const [cx, cy] = at(-90 + k * STEP, R * 0.55);
-    const glyph = letter(c.ch);
-    glyph.setAttribute('transform', `translate(${cx} ${cy}) rotate(${k * STEP}) scale(${LETTER})`);
-    cell.append(glyph);
+    // 글자는 원 둘레 선 위에, 바깥을 향해 세움 → 맨 위로 왔을 때 똑바로 섬
+    const mark = el('g', { class: 'mark' }); // 자리·크기는 layout() 이 화면에 맞춰 정함
+    marks.push(mark);
+    mark.append(el('circle', { class: 'cell-dot', cx: 0, cy: 0, r: 0.75 })); // 글자 뒤 바탕: 선을 끊고 누르는 자리
+    mark.append(letter(c.ch));
+    cell.append(mark);
     cells.push(cell);
     wheel.append(cell);
   });
-  for (let k = 0; k < 5; k++) {
-    const [x, y] = edgeMid(k);
-    wheel.append(el('line', { class: 'divider', x1: 0, y1: 0, x2: x, y2: y }));
-  }
-  wheel.append(el('polygon', {
-    class: 'edge',
-    points: [0, 1, 2, 3, 4].map((k) => vertex(k).join(',')).join(' '),
-  }));
   art.append(wheel);
   svg.append(art);
 
@@ -99,19 +100,33 @@
   svg.setAttribute('aria-label', '자음 원판. 좌우 방향키로 돌리고, ㄱ 이 맨 위에 오면 Enter 로 ㄱ 나무를 엽니다.');
 
   const openCell = cells[0];
-  const openGlyph = openCell.querySelector('path'); // 날아갈 ㄱ (세로획 아래 가운데가 원점)
+  const openGlyph = openCell.querySelector('.letter path'); // 날아갈 ㄱ (세로획 아래 가운데가 원점)
 
-  /* ---------- 크기·자리: 아주 크게, 중심은 화면 아래 가장자리 조금 밑 ---------- */
+  /* ---------- 크기·자리: 화면 양옆으로 넘칠 만큼 크게, 원 꼭대기는 화면 40% 높이 ---------- */
   function layout() {
     const W = window.innerWidth;
     const H = window.innerHeight;
-    const rPx = Math.min(H * 0.85, W * 1.1);   // 꼭짓점까지 반지름(px)
+    const rPx = Math.max(W * 0.6, H * 0.7);    // 원 반지름(px). 지름이 화면 폭보다 큼
     const size = (rPx * 200) / R;              // viewBox 200 단위 전체
-    const cy = H + rPx * 0.06;
+    const cy = H * 0.4 + rPx;                  // 원 중심 (꼭대기 글자가 H*0.4 에 옴)
     svg.style.width = `${size}px`;
     svg.style.height = `${size}px`;
     svg.style.left = `${W / 2 - size / 2}px`;
     svg.style.top = `${cy - size / 2}px`;
+
+    // 글자 크기(px)는 원 크기와 따로, 화면 높이 기준 (울트라와이드에서도 너무 커지지 않게)
+    const letterPx = Math.min(H * 0.2, W * 0.3);
+    const letterUnits = (letterPx * R) / rPx; // px → viewBox 단위
+    marks.forEach((m, k) => {
+      const [x, y] = at(-90 + k * STEP, R);
+      m.setAttribute('transform', `translate(${x} ${y}) rotate(${k * STEP}) scale(${letterUnits})`);
+    });
+
+    // 오행 설명은 맨 위 글자(뒤 바탕 원 포함) 바로 아래에서 시작
+    penta.style.setProperty('--info-top', `${H * 0.4 + letterPx * 0.75 + Math.max(12, H * 0.02)}px`);
+
+    // 원 선 두께도 화면이 클수록 굵게 (1.5px ~ 4px)
+    svg.style.setProperty('--edge-w', `${Math.min(4, Math.max(1.5, H / 600))}px`);
   }
   layout();
   window.addEventListener('resize', layout);
@@ -124,14 +139,23 @@
   const shortest = (d) => { d = norm(d); return d > 180 ? d - 360 : d; };
   const topIndex = () => norm(Math.round(-rot / STEP) * STEP) / STEP;
 
+  // 맨 위 칸 글자의 오행 설명 (index.html 의 .element)
+  const elementEls = [...document.querySelectorAll('.element')];
+
   function render() {
     wheel.style.setProperty('--rot', `${rot}deg`);
     const k = topIndex();
     cells.forEach((c, i) => c.classList.toggle('is-top', i === k));
+    elementEls.forEach((e) => {
+      const on = Number(e.dataset.k) === k;
+      e.classList.toggle('is-active', on);
+      e.setAttribute('aria-hidden', on ? 'false' : 'true');
+    });
     if (k !== shownTop) {
       shownTop = k;
       const c = CELLS[k];
-      live.textContent = c.open ? `${c.ch}. Enter 로 열기` : `${c.ch} (비어 있음)`;
+      const name = elementEls[k] ? elementEls[k].querySelector('.el-name').textContent : '';
+      live.textContent = c.open ? `${c.ch}, ${name}. Enter 로 열기` : `${c.ch}, ${name} (비어 있음)`;
       told = true;
     }
   }

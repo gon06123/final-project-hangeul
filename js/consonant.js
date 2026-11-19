@@ -186,6 +186,7 @@
     sprout(n, at, dir);
     if (!auto) {
       touched = true;
+      ruleHold = { name: '가획', until: at + 2500 }; // 왼쪽 설명의 가획이 잠깐 진해짐
       live.textContent = 'ㄱ 에 획을 더해 ㅋ 이 되었습니다.';
       startWave(n, 'ㅋ', at);
     }
@@ -205,6 +206,7 @@
     sprout(n, now);
     if (!auto) {
       touched = true;
+      ruleHold = { name: '병서', until: now + 2500 };
       live.textContent = 'ㄱ 을 나란히 써서 ㄲ 이 되었습니다.';
       startWave(n, 'ㄲ', now);
     }
@@ -381,7 +383,9 @@
   }
 
   canvas.addEventListener('pointerdown', (e) => {
-    if (!treeOn() || stage === 'falling' || gesture) return;
+    if (!treeOn()) return;
+    lastInput = performance.now(); // 안내는 바로 사라짐
+    if (stage === 'falling' || gesture) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     try { canvas.setPointerCapture(e.pointerId); } catch { /* 포인터가 이미 사라진 경우 */ }
     gesture = { id: e.pointerId, pts: [{ x: e.clientX, y: e.clientY }], dist: 0 };
@@ -442,7 +446,9 @@
 
   // 키보드: 다 자란 뒤 Space/Enter 는 낙엽 (ㅋ·ㄲ 은 획을 그어서만 만듦)
   window.addEventListener('keydown', (e) => {
-    if (!treeOn() || stage === 'falling') return;
+    if (!treeOn()) return;
+    lastInput = performance.now();
+    if (stage === 'falling') return;
     if (e.target.closest?.('button, a, [role="button"]')) return; // 버튼 누르기는 그대로 둠
     if (e.key !== ' ' && e.key !== 'Enter') return;
     e.preventDefault();
@@ -479,9 +485,17 @@
   /* ---------- 화면 맞추기: 나무가 커지면 부드럽게 물러나고 가운데로 ---------- */
   const rootCenter = () => { const b = boxOf('ㄱ', root.d, 0, 0, ROOT); return (b.x0 + b.x1) / 2; };
   const groundY = () => H - Math.max(40, H * 0.08);
+  // 왼쪽(넓은 화면) 또는 위쪽(좁은 화면) 설명 칸을 피한 빈 자리
+  const rulesEl = document.getElementById('rules');
+  function room() {
+    const r = rulesEl.getBoundingClientRect();
+    if (!r.width) return { left: 0, top: 32 };
+    return W > 700 ? { left: r.right + 24, top: 32 } : { left: 0, top: r.bottom + 16 };
+  }
+  const midX = () => (room().left + W) / 2;
   let zoom = 1;
   let panX = rootCenter();
-  let V = { U: base, ox: W / 2 - panX * base, oy: groundY() };
+  let V = { U: base, ox: midX() - panX * base, oy: groundY() };
 
   function view(dt) {
     let x0 = Infinity, x1 = -Infinity, top = 0;
@@ -492,12 +506,13 @@
       if (b.y0 < top) top = b.y0;
     });
     const oy = groundY();
-    const target = Math.max(0.25, Math.min(1, (oy - 32) / (-top * base), (W - 48) / ((x1 - x0) * base)));
+    const space = room();
+    const target = Math.max(0.25, Math.min(1, (oy - space.top) / (-top * base), (W - space.left - 48) / ((x1 - x0) * base)));
     const k = reduce ? 1 : 1 - Math.exp(-dt / 350); // 프레임 간격이 들쭉날쭉해도 같은 빠르기로 따라감
     zoom += (target - zoom) * k;
     panX += ((x0 + x1) / 2 - panX) * k;
     const U = base * zoom;
-    V = { U, ox: W / 2 - panX * U, oy };
+    V = { U, ox: (space.left + W) / 2 - panX * U, oy };
   }
 
   // 글자 하나의 좌표계로 옮겨서 그리기
@@ -522,6 +537,18 @@
     ctx.save();
     const st = (now - n.shake) / 360; // 자리가 없어 ㄲ 이 안 될 때 도리질
     if (st < 1) ctx.translate(Math.sin(st * 22) * 0.05 * size * (1 - st), 0);
+    // 다 자란 뒤 가만히 있으면 끝의 ㅋ 들이 이따금 살랑임 → 눌러 볼 수 있다는 표시
+    if (leafCue >= 0 && n.type === 'ㅋ' && n.parent && !n.children.length) {
+      const ph = ((leafCue + n.x * 3) % 2800) / 1200;
+      if (ph > 0 && ph < 1) {
+        // 가지에 붙은 아래쪽을 축으로 바람에 흔들리듯 기울어짐 (작은 글자도 눈에 띄게 각도로)
+        const sway = Math.sin(ph * Math.PI * 4) * (1 - ph);
+        const bx = V.ox + n.x * V.U, by = V.oy + n.y * V.U;
+        ctx.translate(bx, by);
+        ctx.rotate(sway * 0.22);
+        ctx.translate(-bx, -by);
+      }
+    }
     ctx.fillStyle = color(n.shade);
     inLetter(n, size, () => drawLetter(n.type, p, n.parent ? 0.06 : 0, k, n.conv ? n.conv.side : 1, n.conv ? n.conv.from : 0));
     ctx.restore();
@@ -574,6 +601,141 @@
     }
   }
 
+  /* ---------- 조작 안내: 가만히 있으면 옅은 손 획이 가획·병서를 그어 보임 ---------- */
+  // 처음 들어와서 잠깐, 또는 한 번 해 본 뒤 오래 멈추면, 지금 바꿀 ㄱ 에
+  //   ① 가로로 한 획 + '가획'
+  //   ② 옆에 ㄱ 모양(가로로 가다 꺾어 아래로) + '병서'
+  // 를 번갈아 보여 줌. 화면을 누르거나 획을 그으면 바로 사라짐.
+  const FIRST_WAIT = 1200;  // 처음 들어와서 안내가 나오기까지(ms)
+  const IDLE_WAIT = 10000;  // 한 번 해 본 뒤 오래 멈췄을 때(ms)
+  const PHASE = 2600;       // 가획·병서 한 장면 길이(ms)
+  const GAP = 300;          // 장면 사이 쉼(ms)
+  let lastInput = performance.now();
+  let leafCue = -1;         // 다 자란 뒤 가만히 있은 시간(ms), 아니면 -1
+  let doneAt = 0;
+  const guide = { a: 0, n: null, t0: 0, told: false };
+  let labelFont = '';
+
+  // 왼쪽 설명 칸: 지금 안내하거나 방금 손으로 한 쪽 하나만 보임 (다른 쪽이 올 때까지 그대로 둠)
+  let ruleHold = { name: '', until: 0 }; // 손으로 바꾼 직후 잠깐
+  let guidePhase = '';                    // 안내 획이 보여 주는 중인 쪽
+  let shownRule = null;
+  const ruleEls = [...document.querySelectorAll('.rule')];
+  function updateRules(now) {
+    const name = (now < ruleHold.until ? ruleHold.name : guidePhase) || shownRule || '';
+    if (name === shownRule) return;
+    shownRule = name;
+    ruleEls.forEach((r) => r.classList.toggle('is-active', r.dataset.rule === name));
+  }
+
+  // 안내할 ㄱ: 지금 손으로 바꿀 층(가장 낮은 세대)에서 화면 가운데에 가장 가까운 것
+  function pickTarget(now) {
+    let best = null, bestD = Infinity;
+    each(root, (n) => {
+      if (!pending(n, now)) return;
+      const d = Math.abs(V.ox + n.x * V.U - W / 2);
+      if (!best || n.gen < best.gen || (n.gen === best.gen && d < bestD)) { best = n; bestD = d; }
+    });
+    return best;
+  }
+
+  // 점들을 이은 선을 앞에서부터 frac 만큼만, 끝에 손끝 점
+  function ghostLine(pts, frac, alpha, lw) {
+    const lens = [];
+    let total = 0;
+    for (let i = 1; i < pts.length; i++) { const l = Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y); lens.push(l); total += l; }
+    let left = total * frac;
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = ctx.fillStyle = color(0);
+    ctx.lineWidth = lw;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    let head = pts[0];
+    for (let i = 1; i < pts.length && left > 0; i++) {
+      const k = Math.min(1, left / (lens[i - 1] || 1));
+      head = { x: lerp(pts[i - 1].x, pts[i].x, k), y: lerp(pts[i - 1].y, pts[i].y, k) };
+      ctx.lineTo(head.x, head.y);
+      left -= lens[i - 1];
+    }
+    ctx.stroke();
+    if (frac < 1) { // 긋고 있는 손끝
+      ctx.beginPath();
+      ctx.arc(head.x, head.y, lw * 1.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // 획 옆 작은 글씨 (화면 밖으로 나가면 반대쪽에)
+  function label(text, x, y, altX, alpha) {
+    if (!labelFont) labelFont = getComputedStyle(document.body).fontFamily;
+    const px = Math.round(Math.max(15, 20 * base));
+    ctx.font = `600 ${px}px ${labelFont}`;
+    ctx.textBaseline = 'middle';
+    const w = ctx.measureText(text).width;
+    let tx = x;
+    if (tx + w > W - 16) tx = altX - w;
+    tx = Math.max(16, tx);
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = color(0);
+    ctx.fillText(text, tx, y);
+  }
+
+  function drawGuide(now, dt) {
+    guidePhase = '';
+    const idle = now - lastInput;
+    let want = treeOn() && stage === 'grow' && !gesture && idle > (touched ? IDLE_WAIT : FIRST_WAIT);
+    if (want && (!guide.n || !pending(guide.n, now))) {
+      if (guide.a < 0.02) { guide.n = pickTarget(now); guide.t0 = now; } // 다 사라진 뒤에 새 ㄱ 으로
+      else want = false;
+    }
+    if (!guide.n) want = false;
+    guide.a += ((want ? 1 : 0) - guide.a) * (1 - Math.exp(-dt / (want ? 250 : 90)));
+    if (!want && guide.a < 0.02) { guide.a = 0; guide.n = null; return; }
+    if (want && !guide.told) {
+      guide.told = true;
+      live.textContent = '화면 어디든 가로로 한 획 그으면 가획으로 ㅋ, ㄱ 모양을 그리면 병서로 ㄲ 이 됩니다.';
+    }
+
+    const n = guide.n;
+    const kk = n.gen < MAX_GEN;               // 맨 끝 세대는 가획만
+    const cycle = kk ? 2 * (PHASE + GAP) : PHASE + GAP;
+    const t = (now - guide.t0) % cycle;
+    const second = t >= PHASE + GAP;
+    const tp = second ? t - PHASE - GAP : t;
+    if (tp > PHASE) return;
+
+    const sPx = n.s * V.U;
+    const P = (u, y) => ({ x: V.ox + n.x * V.U + n.d * u * sPx, y: V.oy + n.y * V.U + y * sPx });
+    const lw = Math.max(3, 7 * base);
+    const fade = guide.a * easeOut(seg(tp, 0, 200)) * (1 - seg(tp, 2100, PHASE));
+    const draw = reduce ? 1 : easeOut(seg(tp, 300, 1100)); // 손 획이 그어지는 정도
+    const show = seg(tp, 1000, 1500);                      // 결과·글씨가 드러나는 정도
+    const gap = Math.max(12, 0.12 * sPx);
+    if (fade > 0.3) guidePhase = second ? '병서' : '가획';
+
+    ctx.save();
+    if (!second) {
+      // ① 가획: 글자 가운데를 가로지르는 한 획 (화면에서 늘 왼쪽 → 오른쪽)
+      const a = P(-0.35, MID).x, b = P(ARM + 0.3, MID).x;
+      const y = P(0, MID).y;
+      const x0 = Math.min(a, b), x1 = Math.max(a, b);
+      ghostLine([{ x: x0, y }, { x: x1, y }], draw, 0.4 * fade, lw);
+      label('가획', x1 + gap, y, x0 - gap, 0.7 * fade * show);
+    } else {
+      // ② 병서: 세로획 바깥 옆에 ㄱ 을 하나 더 씀 (화면에서 늘 바른 ㄱ: 오른쪽으로 가다 아래로)
+      const a = P(-0.3, 0).x, b = P(-0.3 - (ARM - T), 0).x; // 가로획: 원래 ㄱ 가로획보다 획 굵기만큼 살짝 짧게 (둥근 끝이 더해지는 만큼)
+      const x0 = Math.min(a, b), x1 = Math.max(a, b);
+      const top = P(0, -1 + T / 2).y, bottom = P(0, 0).y;
+      ghostLine([{ x: x0, y: top }, { x: x1, y: top }, { x: x1, y: bottom }], draw, (0.4 + 0.15 * show) * fade, lw);
+      // 획이 끝나는 곳(세로획 아래 끝) 옆. 글씨 아래 끝이 획 끝에 맞도록 글씨 높이 반만큼 올림
+      const px = Math.round(Math.max(15, 20 * base));
+      label('병서', x1 + gap, bottom - px / 2, x0 - gap, 0.7 * fade * show);
+    }
+    ctx.restore();
+  }
+
   /* ---------- 오각형 첫 화면(js/penta.js)과 주고받는 것 ---------- */
   window.hangulTree = {
     // 지금 그려진 맨 아래 글자: 세로획 아래 가운데 (x, y), 글자 크기 s(px), 옅어진 정도 shade
@@ -599,9 +761,16 @@
       gesture = null;
       touched = false;
       breathFrom = performance.now() + 900; // 날아온 ㄱ 이 내려앉은 뒤부터 숨 쉬기
+      lastInput = performance.now() + 900;  // 조작 안내도 내려앉은 뒤부터 셈
+      guide.a = 0;
+      guide.n = null;
+      guide.told = false;
       zoom = 1;
       panX = rootCenter();
-      V = { U: base, ox: W / 2 - panX * base, oy: groundY() };
+      V = { U: base, ox: midX() - panX * base, oy: groundY() };
+      ruleHold = { name: '', until: 0 };
+      shownRule = null; // 처음 들어오면 아무 설명도 없이 시작
+      ruleEls.forEach((r) => r.classList.remove('is-active'));
       live.textContent = '';
     },
   };
@@ -617,6 +786,10 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
 
+    const done = treeOn() && isComplete(now);
+    if (done && !wasDone) doneAt = now;
+    leafCue = done && !reduce ? now - Math.max(doneAt, lastInput) - 2500 : -1;
+
     // 끝 가지부터 그려서, 부모 가로획이 이음새를 덮게
     const all = [];
     const ks = 1 - Math.exp(-dt / 500);
@@ -628,8 +801,9 @@
     all.sort((a, b) => b.gen - a.gen).forEach((n) => drawNode(n, now));
     drawTrails(now);
     drawLeaves(now);
+    drawGuide(now, dt);
+    updateRules(now);
 
-    const done = treeOn() && isComplete(now);
     if (done && !wasDone) live.textContent = '나무가 다 자랐습니다. 빈 곳을 누르면 끝의 ㅋ 들이 낙엽처럼 떨어집니다.';
     wasDone = done;
 
