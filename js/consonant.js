@@ -23,18 +23,58 @@
   const CONV = reduce ? 200 : 520;     // ㄱ 이 ㅋ·ㄲ 으로 바뀌는 시간(ms)
 
   // 글자 모양 — 글자 크기 = 1, 원점 = 세로획 아래 가운데, 위쪽이 -y, +u 가 가로획이 뻗는 쪽
-  const T = 0.17;        // 획 굵기
-  const ARM = 0.86;      // ㄱ·ㅋ 가로획 끝
+  // T·TH·ARM 은 measureShape() 가 페이지 글꼴(Pretendard SemiBold)의 ㄱ 을 재서 맞춤 → 원판의 ㄱ 과 같은 모양
+  let T = 0.17;          // 세로획 굵기
+  let TH = 0.17;         // 가로획 굵기
+  let ARM = 0.86;        // ㄱ·ㅋ 가로획 끝
   const MID = -0.47;     // ㅋ 가운데 획 높이
-  const MID_END = 0.74;  // ㅋ 가운데 획 끝
-  const KK_ARM1 = 0.36;  // ㄲ 이 된 본래 ㄱ 의 가로획 끝
-  const KK_LEN2 = 0.40;  // 떨어져 나온 ㄱ 의 가로획 길이
-  const kkCopyAt = (side) => (side > 0 ? 0.52 : -0.56); // 떨어져 나온 ㄱ 의 세로획 자리
+  const MID_END = 0.96;  // ㅋ 가운데 획 끝 (위 가로획 끝 ARM 에 대한 비율 — 거의 같은 길이로)
+  const KK_ARM1 = 0.62;  // ㄲ 이 된 본래 ㄱ 의 가로획 끝
+  const KK_LEN2 = 0.62;  // 떨어져 나온 ㄱ 의 가로획 길이
+  const KK_GAP = 0.075;  // 나란히 선 두 ㄱ 사이 틈
+  // 떨어져 나온 ㄱ 의 세로획 자리: 본래 ㄱ 가로획 끝(+쪽) 또는 세로획(-쪽)에서 틈만큼 띄움
+  const kkCopyAt = (side) => (side > 0 ? KK_ARM1 + KK_GAP + T / 2 : -T / 2 - KK_GAP - KK_LEN2);
 
   // 세대 물결
   const FOLLOW = 0.7;                    // 물결로 바뀌는 ㄱ 이 손으로 고른 글자를 따를 확률
   const WAVE_MS = reduce ? 0.3 : 1.3;    // 물결이 옆으로 번지는 빠르기 (설계 단위 1 만큼에 ms)
   const AUTO_WAIT = reduce ? 60 : 160;   // 물결이 닿은 ㄱ 이 바뀌기 시작하기까지 최소(ms), 여기에 조금씩 흩어짐
+
+  // 글꼴 ㄱ 을 캔버스에 크게 써서 픽셀로 잼: 잉크 높이를 1 로 두고 세로획·가로획 굵기와 전체 폭
+  function measureShape() {
+    const px = 240, pad = 40;
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = px + pad * 2;
+    const c = cv.getContext('2d', { willReadFrequently: true });
+    c.font = `600 ${px}px ${getComputedStyle(document.body).fontFamily}`;
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.fillText('ㄱ', cv.width / 2, cv.height / 2);
+    const N = cv.width;
+    const data = c.getImageData(0, 0, N, N).data;
+    const ink = (x, y) => data[(y * N + x) * 4 + 3] > 127;
+    let x0 = N, x1 = -1, y0 = N, y1 = -1;
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      if (!ink(x, y)) continue;
+      if (x < x0) x0 = x; if (x > x1) x1 = x;
+      if (y < y0) y0 = y; if (y > y1) y1 = y;
+    }
+    if (x1 < 0) return;
+    const h = y1 - y0 + 1, w = x1 - x0 + 1;
+    let th = 0, tv = 0;
+    const cx = Math.round(x0 + w * 0.3); // 가로획만 지나는 세로줄
+    for (let y = y0; y <= y1; y++) if (ink(cx, y)) th++;
+    const cy = Math.round(y0 + h * 0.6); // 세로획만 지나는 가로줄
+    for (let x = x0; x <= x1; x++) if (ink(x, cy)) tv++;
+    const t = tv / h, tH = th / h, arm = w / h - t / 2;
+    if (t < 0.05 || t > 0.35 || tH < 0.05 || tH > 0.35 || arm < 0.4 || arm > 1.4) return; // 이상하게 재졌으면 그대로
+    T = t; TH = tH; ARM = arm;
+  }
+  measureShape();
+  if (document.fonts) {
+    document.fonts.load('600 100px Pretendard', 'ㄱ').then(measureShape, () => {});
+    document.fonts.ready.then(measureShape);
+  }
 
   const clamp01 = (v) => Math.max(0, Math.min(1, v));
   const seg = (p, a, b) => clamp01((p - a) / (b - a));
@@ -469,16 +509,16 @@
     // 가로획: 꺾이는 곳에서 바깥으로 뻗음 (ㄲ 이 되면 나란히 서도록 짧아짐)
     if (aT > 0) {
       const end = type === 'ㄲ' ? lerp(ARM, KK_ARM1, k) : ARM;
-      ctx.fillRect(-T / 2, -1, (end + T / 2) * aT, T);
+      ctx.fillRect(-T / 2, -1, (end + T / 2) * aT, TH);
     }
     // ㅋ: 세로획에 가운데 획이 더해짐 (가획)
-    if (type === 'ㅋ' && k > 0) ctx.fillRect(0, MID - T / 2, MID_END * k, T);
+    if (type === 'ㅋ' && k > 0) ctx.fillRect(0, MID - TH / 2, ARM * MID_END * k, TH);
     // ㄲ: 떨어져 나온 ㄱ 이 옆에 나란히 붙음 (병서)
     if (type === 'ㄲ' && (k > 0 || from !== 0)) {
       const vx = lerp(from, kkCopyAt(side), k);
       const len = lerp(ARM, KK_LEN2, k);
       ctx.fillRect(vx - T / 2, -1, T, 1 + ov);
-      ctx.fillRect(vx - T / 2, -1, len + T / 2, T);
+      ctx.fillRect(vx - T / 2, -1, len + T / 2, TH);
     }
   }
 
@@ -537,7 +577,7 @@
     ctx.save();
     const st = (now - n.shake) / 360; // 자리가 없어 ㄲ 이 안 될 때 도리질
     if (st < 1) ctx.translate(Math.sin(st * 22) * 0.05 * size * (1 - st), 0);
-    // 다 자란 뒤 가만히 있으면 끝의 ㅋ 들이 이따금 살랑임 → 눌러 볼 수 있다는 표시
+    // 다 자라면 바로 끝의 ㅋ 들이 이따금 살랑임 → 눌러 볼 수 있다는 표시
     if (leafCue >= 0 && n.type === 'ㅋ' && n.parent && !n.children.length) {
       const ph = ((leafCue + n.x * 3) % 2800) / 1200;
       if (ph > 0 && ph < 1) {
@@ -727,7 +767,7 @@
       // ② 병서: 세로획 바깥 옆에 ㄱ 을 하나 더 씀 (화면에서 늘 바른 ㄱ: 오른쪽으로 가다 아래로)
       const a = P(-0.3, 0).x, b = P(-0.3 - (ARM - T), 0).x; // 가로획: 원래 ㄱ 가로획보다 획 굵기만큼 살짝 짧게 (둥근 끝이 더해지는 만큼)
       const x0 = Math.min(a, b), x1 = Math.max(a, b);
-      const top = P(0, -1 + T / 2).y, bottom = P(0, 0).y;
+      const top = P(0, -1 + TH / 2).y, bottom = P(0, 0).y;
       ghostLine([{ x: x0, y: top }, { x: x1, y: top }, { x: x1, y: bottom }], draw, (0.4 + 0.15 * show) * fade, lw);
       // 획이 끝나는 곳(세로획 아래 끝) 옆. 글씨 아래 끝이 획 끝에 맞도록 글씨 높이 반만큼 올림
       const px = Math.round(Math.max(15, 20 * base));
@@ -740,6 +780,8 @@
   window.hangulTree = {
     // 지금 그려진 맨 아래 글자: 세로획 아래 가운데 (x, y), 글자 크기 s(px), 옅어진 정도 shade
     rootGlyph: () => ({ x: V.ox, y: V.oy, s: ROOT * V.U, shade: root.shade }),
+    // 글꼴 ㄱ 을 다시 재고, 나무 ㄱ 모양을 돌려줌 (원판 쪽이 글꼴을 받은 뒤 부름)
+    measure() { measureShape(); return { T, TH, ARM }; },
     color,
     // 나무를 ㄱ 하나로 되돌리고 화면도 처음 자리로 (그리는 애니메이션 없이 바로)
     reset() {
@@ -788,7 +830,7 @@
 
     const done = treeOn() && isComplete(now);
     if (done && !wasDone) doneAt = now;
-    leafCue = done && !reduce ? now - Math.max(doneAt, lastInput) - 2500 : -1;
+    leafCue = done && !reduce ? now - doneAt : -1; // 다 자라자마자 끝의 ㅋ 들이 살랑이기 시작 (손을 움직여도 계속)
 
     // 끝 가지부터 그려서, 부모 가로획이 이음새를 덮게
     const all = [];

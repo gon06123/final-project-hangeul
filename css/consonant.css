@@ -1,5 +1,14 @@
 /* ===== 01 자음 페이지 ===== */
 
+/* 화면 비율 유지: 1920×1080 을 기준으로 글자·버튼·여백이 화면과 같은 비율로 커지고 작아짐.
+   min(Avw, Bvh) = 1920×1080 에서 N px 인 값 (A = N/19.2, B = N/10.8). 폭·높이 중 작은 쪽 비율을 따름.
+   예) 28px → min(1.458vw, 2.593vh)
+   작은 화면에서는 각 값의 max(최소 px, …) 로 읽을 수 있는 크기를 지킴 */
+:root {
+  --edge: max(20px, min(1.042vw, 1.852vh));          /* 화면 가장자리에서 버튼까지 */
+  --nav-size: max(64px, min(4.479vw, 7.963vh));      /* 두 버튼 크기 (아이콘은 그 60%) */
+}
+
 html, body { height: 100%; overflow: hidden; }
 
 body {
@@ -23,16 +32,41 @@ body[data-view="penta"] { cursor: default; }
 }
 body[data-view="penta"] #tree { visibility: hidden; }
 
+/* ---------- 나무 화면 왼쪽 위: ㄱ 의 오행 (木 나무 목 / 성장 · 뻗어 나감) ---------- */
+/* 돌아가기(←) 버튼 바로 아래, 가획·병서 설명과 같은 세로줄 */
+.tree-element {
+  position: fixed;
+  top: calc(var(--edge) + var(--nav-size) + max(8px, min(.417vw, .741vh)));
+  left: calc(var(--edge) + var(--nav-size) * .2735);
+  z-index: 1;
+  pointer-events: none;
+  transition: opacity .4s ease;
+}
+.tree-element p { margin: 0; }
+.tree-element .el-name { margin-top: 0 !important; }
+body[data-view="penta"] .tree-element { visibility: hidden; opacity: 0; }
+/* 좁은 화면: 돌아가기 버튼 오른쪽에 나란히 (아래는 가획·병서 설명 자리) */
+@media (max-width: 700px) {
+  .tree-element {
+    top: var(--edge);
+    left: calc(var(--edge) + var(--nav-size) + 4px);
+    height: var(--nav-size);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+}
+
 /* ---------- 나무 화면 왼쪽: 가획·병서 설명 ---------- */
 /* 획을 긋는 데 방해되지 않게 눌리지 않음. 나무는 이 옆 빈 곳에 맞춰 자리 잡음 (js/consonant.js) */
 .rules {
   position: fixed;
-  /* 왼쪽 위 돌아가기(○) 아이콘의 왼쪽 끝과 한 줄로: 버튼 left 20px + 안쪽 여백 20% + 아이콘 svg 안 원 바깥까지 (1.9/24 × 60%) */
-  left: calc(20px + var(--nav-size) * .2475);
+  /* 왼쪽 위 돌아가기(←) 아이콘의 왼쪽 끝과 한 줄로: 버튼 left + 안쪽 여백 20% + 아이콘 svg 안 화살촉 끝까지 (2.94/24 × 60%) */
+  left: calc(var(--edge) + var(--nav-size) * .2735);
   top: 50%;
   transform: translateY(-50%);
   z-index: 1;
-  width: clamp(200px, 17vw, 300px);
+  width: max(200px, min(15.625vw, 27.778vh));
   display: grid;
   pointer-events: none;
   transition: opacity .4s ease;
@@ -49,7 +83,7 @@ body[data-view="penta"] .rules { visibility: hidden; opacity: 0; }
 .rule.is-active { opacity: 1; transform: none; }
 .rule p { margin: 0; }
 .rule-name {
-  font-size: clamp(20px, 1.6vw, 28px);
+  font-size: max(20px, min(1.458vw, 2.593vh));
   font-weight: 700;
   letter-spacing: -.02em;
 }
@@ -60,21 +94,21 @@ body[data-view="penta"] .rules { visibility: hidden; opacity: 0; }
   color: var(--muted);
 }
 .rule-eg {
-  margin-top: 4px !important;
-  font-size: clamp(16px, 1.2vw, 20px);
+  margin-top: max(4px, min(.208vw, .37vh)) !important;
+  font-size: max(16px, min(1.042vw, 1.852vh));
   font-weight: 600;
 }
 .rule-desc {
-  margin-top: 8px !important;
-  font-size: clamp(14px, .95vw, 16px);
+  margin-top: max(8px, min(.417vw, .741vh)) !important;
+  font-size: max(14px, min(.833vw, 1.481vh));
   line-height: 1.55;
   color: var(--gray-8);
 }
 /* 좁은 화면: 위쪽(돌아가기 버튼 아래)에 */
 @media (max-width: 700px) {
   .rules {
-    top: calc(20px + var(--nav-size) + 4px);
-    left: calc(20px + var(--nav-size) * .2475);
+    top: calc(var(--edge) + var(--nav-size) + 4px);
+    left: calc(var(--edge) + var(--nav-size) * .2735);
     right: 16px;
     width: auto;
     transform: none;
@@ -127,10 +161,10 @@ body[data-view="tree"] .penta { visibility: hidden; }
 /* 맨 위에 온 칸이 고른 칸. ㄱ 이 위에 있을 때만 눌러서 열 수 있음 */
 .cell.is-open.is-top { cursor: pointer; }
 
+/* 원판 글자: Pretendard SemiBold (크기·자리는 js/penta.js 의 fitLetters) */
 .letter {
-  fill: none;
-  stroke: currentColor;
-  stroke-linejoin: miter;
+  fill: currentColor;
+  stroke: none;
   transform-box: fill-box;
   transform-origin: center;
   transition: transform .45s cubic-bezier(.22, 1, .36, 1);
@@ -138,6 +172,7 @@ body[data-view="tree"] .penta { visibility: hidden; }
 /* 글자에 마우스를 올리면(또는 키보드로 고른 위 칸) 살짝 커짐 */
 .penta:not(.is-dragging) .mark:hover .letter,
 .penta-svg:focus-visible .cell.is-top .letter { transform: scale(1.12); }
+.glyph-ref { fill: none; visibility: hidden; } /* 날아갈 ㄱ 의 자리만 재는 보이지 않는 ㄱ */
 .cell.is-locked .letter { opacity: .25; } /* 아직 비어 있는 칸 */
 .cell.is-flying .letter { visibility: hidden; }
 
@@ -149,7 +184,7 @@ body[data-view="tree"] .penta { visibility: hidden; }
   top: var(--info-top, 58%);
   left: 50%;
   transform: translateX(-50%);
-  width: min(560px, calc(100% - 32px));
+  width: min(max(560px, min(29.167vw, 51.852vh)), calc(100% - 32px));
   display: grid;
   text-align: center;
   pointer-events: none;
@@ -167,14 +202,14 @@ body[data-view="tree"] .penta { visibility: hidden; }
 .element.is-active { opacity: 1; transform: none; transition-delay: .12s; }
 .element p { margin: 0; }
 .el-eyebrow {
-  font-size: clamp(12px, .8vw, 14px);
+  font-size: max(12px, min(.729vw, 1.296vh));
   font-weight: 600;
   letter-spacing: .08em;
   color: var(--muted);
 }
 .el-name {
-  margin-top: 6px !important;
-  font-size: clamp(22px, 1.8vw, 32px);
+  margin-top: max(6px, min(.312vw, .556vh)) !important;
+  font-size: max(22px, min(1.667vw, 2.963vh));
   font-weight: 700;
   letter-spacing: -.02em;
   line-height: 1.3;
@@ -186,15 +221,15 @@ body[data-view="tree"] .penta { visibility: hidden; }
 }
 /* 오행의 시각적 해석 (성장 · 뻗어 나감 …) */
 .el-sense {
-  margin-top: 6px !important;
-  font-size: clamp(16px, 1.2vw, 20px);
+  margin-top: max(6px, min(.312vw, .556vh)) !important;
+  font-size: max(16px, min(1.042vw, 1.852vh));
   font-weight: 600;
   color: var(--gray-8);
 }
 /* 본뜬 발음기관 · 가획 */
 .el-meta {
-  margin-top: 6px !important;
-  font-size: clamp(13px, .9vw, 15px);
+  margin-top: max(6px, min(.312vw, .556vh)) !important;
+  font-size: max(13px, min(.781vw, 1.389vh));
   font-weight: 600;
   color: var(--muted);
 }
@@ -212,13 +247,11 @@ body[data-view="tree"] .penta { visibility: hidden; }
 }
 
 /* ---------- 나무 화면: 왼쪽 위 오각형 버튼 ---------- */
-/* 두 버튼 크기: 화면이 클수록 같이 커짐 (64px ~ 96px, 아이콘은 그 60%) */
-:root { --nav-size: clamp(64px, 4.5vw, 96px); }
-
+/* 두 버튼 크기·자리는 맨 위 :root 의 --nav-size, --edge (화면 비율 유지) */
 .to-penta {
   position: fixed;
-  top: 20px;
-  left: 20px;
+  top: var(--edge);
+  left: var(--edge);
   z-index: 4;
   display: none;
   width: var(--nav-size);
@@ -241,8 +274,8 @@ body[data-view="tree"] .to-penta { display: block; }
 /* ---------- 오각형 화면: 오른쪽 위 모음(ㅏ) 버튼 ---------- */
 .to-vowel {
   position: fixed;
-  top: 20px;
-  right: 20px;
+  top: var(--edge);
+  right: var(--edge);
   z-index: 4;
   display: none;
   width: var(--nav-size);

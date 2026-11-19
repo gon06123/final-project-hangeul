@@ -15,10 +15,9 @@
   const back = document.getElementById('to-penta');
   const live = document.getElementById('live');
 
-  // 나무의 ㄱ 과 같은 모양 (js/consonant.js): 글자 크기 1, 원점 = 세로획 아래 가운데
-  const T = 0.17;
-  const ARM = 0.86;
-  const G_PATH = `M${-ARM} ${-1 + T / 2} H0 V0`;
+  // 나무의 ㄱ 과 같은 모양 (js/consonant.js 가 글꼴 ㄱ 을 재서 정함): 글자 크기 1, 원점 = 세로획 아래 가운데
+  const gPath = ({ T, TH, ARM }) => `M${-ARM} -1 H${T / 2} V0 H${-T / 2} V${-1 + TH} H${-ARM} Z`;
+  const gCenter = ({ T, ARM }) => [-(ARM - T / 2) / 2, -0.5]; // 원점에서 본 잉크 가운데
 
   const R = 90;         // 원 반지름 (viewBox 단위, viewBox 는 -100~100)
   const STEP = 72;      // 한 칸 = 72°
@@ -44,25 +43,65 @@
     return `M0 0 L${x0} ${y0} A${R} ${R} 0 0 1 ${x1} ${y1} Z`;
   };
 
-  // 가운데가 (0,0), 높이 1 인 글자 모양
+  // 글자는 페이지 글꼴(Pretendard) SemiBold 로 씀. 잉크(실제 그려지는 부분) 가운데가 (0,0),
+  // 다섯 글자 가운데 가장 큰 것의 높이가 1 이 되게 fitLetters() 가 크기·자리를 맞춤
+  const FONT_PX = 100;
+  const glyphs = []; // { node: <text>, ch }
+
+  function glyph(ch) {
+    const t = el('text', { class: 'glyph', 'font-size': FONT_PX, 'font-weight': 600 });
+    t.textContent = ch;
+    glyphs.push({ node: t, ch });
+    return t;
+  }
+
   function letter(ch) {
-    const g = el('g', { class: 'letter', 'stroke-width': T });
+    const g = el('g', { class: 'letter' });
+    g.append(glyph(ch));
     if (ch === 'ㄱ') {
-      // 세로획 아래 가운데가 원점이라 글자 가운데로 옮겨 둠
-      const inner = el('g', { transform: `translate(${(ARM - T / 2) / 2} 0.5)` });
-      inner.append(el('path', { d: G_PATH }));
+      // 날아갈 자리를 재는 보이지 않는 ㄱ (나무의 ㄱ 과 같은 모양, 세로획 아래 가운데가 원점).
+      // 자리·크기는 fitLetters() 가 글꼴 ㄱ 에 겹치게 맞춤
+      const inner = el('g', { class: 'glyph-ref-frame' });
+      inner.append(el('path', { class: 'glyph-ref' }));
       g.append(inner);
-    } else if (ch === 'ㄴ') {
-      g.append(el('path', { d: `M${-0.475 + T / 2} -0.5 V${0.5 - T / 2} H0.475` }));
-    } else if (ch === 'ㅁ') {
-      g.append(el('path', { d: 'M-0.365 -0.395 H0.365 V0.395 H-0.365 Z' }));
-    } else if (ch === 'ㅅ') {
-      // 꼭대기는 뾰족하지 않게 수평으로 잘라 평평하게(bevel). 잘린 만큼 꼭짓점을 올려 높이는 그대로
-      g.append(el('path', { d: 'M-0.47 0.5 L0 -0.46 L0.47 0.5', 'stroke-linejoin': 'bevel' }));
-    } else if (ch === 'ㅇ') {
-      g.append(el('circle', { cx: 0, cy: 0, r: 0.5 - T / 2 }));
     }
     return g;
+  }
+
+  // 캔버스로 글꼴의 실제 잉크 범위를 재서 글자마다 가운데·크기를 맞춤 (글꼴을 다 받은 뒤 다시)
+  let fitK = 0.01;
+  function fitLetters() {
+    const c = document.createElement('canvas').getContext('2d');
+    c.font = `600 ${FONT_PX}px ${getComputedStyle(body).fontFamily}`;
+    const box = {};
+    let hMax = 0;
+    for (const { ch } of glyphs) {
+      if (box[ch]) continue;
+      const m = c.measureText(ch);
+      box[ch] = {
+        cx: (m.actualBoundingBoxRight - m.actualBoundingBoxLeft) / 2,
+        cy: (m.actualBoundingBoxDescent - m.actualBoundingBoxAscent) / 2,
+        h: m.actualBoundingBoxAscent + m.actualBoundingBoxDescent,
+      };
+      hMax = Math.max(hMax, box[ch].h);
+    }
+    if (!hMax) return;
+    fitK = 1 / hMax;
+    for (const { node, ch } of glyphs) {
+      node.setAttribute('transform', `scale(${fitK}) translate(${-box[ch].cx} ${-box[ch].cy})`);
+    }
+
+    // 나무 ㄱ 모양을 글꼴 ㄱ 에 겹치게: ㄱ 잉크 높이(gh) 가 나무 ㄱ 의 크기 1
+    const shape = tree.measure();
+    const gh = box['ㄱ'].h * fitK;
+    const [mx, my] = gCenter(shape);
+    const d = gPath(shape);
+    // 칸 안: 글자 가운데에서 나무 ㄱ 원점으로
+    document.querySelectorAll('.glyph-ref-frame').forEach((f) => f.setAttribute('transform', `scale(${gh}) translate(${-mx} ${-my})`));
+    document.querySelectorAll('.glyph-ref').forEach((p) => p.setAttribute('d', d));
+    // 나는 ㄱ: 나무 ㄱ 원점에서 글자 가운데로 (크기 1 = ㄱ 잉크 높이)
+    flyerText.setAttribute('transform', `translate(${mx} ${my}) scale(${1 / gh})`);
+    flyerPath.setAttribute('d', d);
   }
 
   /* ---------- 원판 그리기 ---------- */
@@ -100,7 +139,7 @@
   svg.setAttribute('aria-label', '자음 원판. 좌우 방향키로 돌리고, ㄱ 이 맨 위에 오면 Enter 로 ㄱ 나무를 엽니다.');
 
   const openCell = cells[0];
-  const openGlyph = openCell.querySelector('.letter path'); // 날아갈 ㄱ (세로획 아래 가운데가 원점)
+  const openGlyph = openCell.querySelector('.glyph-ref'); // 날아갈 ㄱ 의 자리 (세로획 아래 가운데가 원점)
 
   /* ---------- 크기·자리: 화면 양옆으로 넘칠 만큼 크게, 원 꼭대기는 화면 40% 높이 ---------- */
   function layout() {
@@ -236,13 +275,21 @@
   /* ---------- 위 칸의 ㄱ ↔ 나무 뿌리 ㄱ 사이를 나는 글자 ---------- */
   const flight = el('svg', { class: 'flight', 'aria-hidden': 'true' });
   const flyer = el('g');
-  const flyerPath = el('path', {
-    d: G_PATH, fill: 'none', stroke: 'currentColor', 'stroke-width': T, 'stroke-linejoin': 'miter',
-  });
-  flyer.append(flyerPath);
+  const flyerPath = el('path', { fill: 'currentColor' }); // 나무 ㄱ (모양은 fitLetters 가 채움)
+  // 칸의 글꼴 ㄱ: 칸 안에서와 같은 자리·크기 (fitLetters 가 맞춤). 나는 동안 나무 ㄱ 과 서로 스르르 바뀜
+  const flyerText = el('g', { class: 'flyer-text' });
+  flyerText.append(glyph('ㄱ'));
+  flyer.append(flyerText, flyerPath);
   flight.append(flyer);
   flight.style.display = 'none';
   body.append(flight);
+
+  // 글꼴을 받기 전에도 대강 맞춰 두고, 받은 뒤 다시 맞춤
+  fitLetters();
+  if (document.fonts) {
+    document.fonts.load(`600 ${FONT_PX}px Pretendard`, 'ㄱㄴㅁㅅㅇ').then(fitLetters, () => {});
+    document.fonts.ready.then(fitLetters);
+  }
 
   // 칸 안 ㄱ 의 화면 위치: 세로획 아래 가운데 (x, y), 글자 크기 s(px)
   function cellGlyph() {
@@ -253,7 +300,8 @@
   const lerp = (a, b, t) => a + (b - a) * t;
   const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
-  function fly(from, to, done) {
+  // toTree: 칸 → 나무면 글꼴 ㄱ 이 나무 ㄱ 으로, 나무 → 칸이면 그 반대로 바뀌며 남
+  function fly(from, to, done, toTree) {
     const DUR = reduce ? 1 : 850;
     const t0 = performance.now();
     flight.style.display = '';
@@ -261,7 +309,12 @@
       const k = easeInOut(Math.min(1, (now - t0) / DUR));
       flyer.setAttribute('transform',
         `translate(${lerp(from.x, to.x, k)} ${lerp(from.y, to.y, k)}) scale(${lerp(from.s, to.s, k)})`);
-      flyerPath.style.stroke = tree.color(lerp(from.shade, to.shade, k)); // 옅어진 뿌리 ㄱ 도 자연스럽게
+      const c = tree.color(lerp(from.shade, to.shade, k)); // 옅어진 뿌리 ㄱ 도 자연스럽게
+      flyerPath.style.fill = c;
+      flyerText.style.fill = c;
+      const shape = toTree ? k : 1 - k; // 나무 ㄱ 이 보이는 정도
+      flyerPath.style.opacity = shape;
+      flyerText.style.opacity = 1 - shape;
       if (k < 1) requestAnimationFrame(frame);
       else { flight.style.display = 'none'; done(); }
     };
@@ -289,7 +342,7 @@
       body.dataset.view = 'tree';
       openCell.classList.remove('is-flying');
       busy = false;
-    });
+    }, true);
   }
 
   function leaveTree() {
@@ -305,7 +358,7 @@
       openCell.classList.remove('is-flying');
       busy = false;
       svg.focus({ preventScroll: true });
-    });
+    }, false);
   }
 
   function goBack() {
