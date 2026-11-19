@@ -2,8 +2,7 @@
    시계 방향으로 ㄱ(木) ㄴ(火) ㅁ(土) ㅅ(金) ㅇ(水) — 상생 순서.
    원판을 돌려 맨 위로 온 칸이 고른 칸: 끌어서 돌리기, 마우스 휠, 좌우 방향키, 옆 칸을 누르면 그 칸이 위로.
    ㄱ 이 맨 위에 있을 때 누르면(또는 Enter) 그 ㄱ 이 화면 아래로 날아가 나무의 뿌리가 되고 ㄱ 나무가 시작된다.
-   나머지 칸은 아직 비워 둠(글자만 옅게). 왼쪽 위 오각형 버튼이나 Esc 로 돌아온다.
-   오른쪽 위 ㅏ 버튼은 모음 페이지(vowel.html)로 넘어감. */
+   나머지 칸은 아직 비워 둠(글자만 옅게). 왼쪽 위 오각형 버튼이나 Esc 로 돌아온다. */
 (() => {
   const NS = 'http://www.w3.org/2000/svg';
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -381,17 +380,6 @@
     if (location.hash === '#tree') enterTree(false);
     else leaveTree();
   });
-
-  // 오른쪽 위 ㅏ 버튼: 화면을 잠깐 비운 뒤 모음 페이지로 (새 탭·창으로 열 때는 그대로 둠)
-  const toVowel = document.getElementById('to-vowel');
-  toVowel.addEventListener('click', (e) => {
-    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-    e.preventDefault();
-    body.classList.add('is-leaving');
-    setTimeout(() => { location.href = toVowel.href; }, reduce ? 0 : 280);
-  });
-  // 뒤로 가기로 이 페이지가 다시 보일 때(페이지 캐시) 비워 둔 화면을 되돌림
-  window.addEventListener('pageshow', () => body.classList.remove('is-leaving'));
 
   // 주소가 #tree 로 열리면 바로 나무 화면
   if (location.hash === '#tree') {

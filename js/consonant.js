@@ -100,6 +100,10 @@
     canvas.width = Math.round(W * dpr);
     canvas.height = Math.round(H * dpr);
     base = Math.min(W / 600, H / 960);
+    readColors();
+  }
+  // 글자색·바탕색: 음양 버튼으로 화면이 바뀌는 동안에도 따라가도록 매 프레임 읽음
+  function readColors() {
     const cs = getComputedStyle(document.body);
     ink = rgb(cs.color);
     paper = rgb(cs.backgroundColor);
@@ -825,6 +829,7 @@
     autoStep(now);
     view(dt);
 
+    readColors();
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
 

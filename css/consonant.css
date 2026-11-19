@@ -102,7 +102,7 @@ body[data-view="penta"] .rules { visibility: hidden; opacity: 0; }
   margin-top: max(8px, min(.417vw, .741vh)) !important;
   font-size: max(14px, min(.833vw, 1.481vh));
   line-height: 1.55;
-  color: var(--gray-8);
+  color: var(--soft);
 }
 /* 좁은 화면: 위쪽(돌아가기 버튼 아래)에 */
 @media (max-width: 700px) {
@@ -224,7 +224,7 @@ body[data-view="tree"] .penta { visibility: hidden; }
   margin-top: max(6px, min(.312vw, .556vh)) !important;
   font-size: max(16px, min(1.042vw, 1.852vh));
   font-weight: 600;
-  color: var(--gray-8);
+  color: var(--soft);
 }
 /* 본뜬 발음기관 · 가획 */
 .el-meta {
@@ -271,27 +271,31 @@ body[data-view="tree"] .penta { visibility: hidden; }
 .to-penta:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
 body[data-view="tree"] .to-penta { display: block; }
 
-/* ---------- 오각형 화면: 오른쪽 위 모음(ㅏ) 버튼 ---------- */
-.to-vowel {
+/* ---------- 오른쪽 위: 음양 버튼 (밝은 화면 ㅏ 양 ↔ 어두운 화면 ㅓ 음) ---------- */
+/* 기둥(ㅣ = 사람)은 그대로, 점(· = 하늘)이 기둥 바깥(동쪽, 해 뜨는 쪽)에서 안쪽(서쪽)으로 건너감 */
+.theme-toggle {
   position: fixed;
   top: var(--edge);
   right: var(--edge);
   z-index: 4;
-  display: none;
   width: var(--nav-size);
   height: var(--nav-size);
   padding: calc(var(--nav-size) * .2);
+  border: 0;
   border-radius: 50%;
+  background: none;
   color: var(--fg);
   opacity: .8;
+  cursor: pointer;
   transition: opacity .2s;
 }
-.to-vowel svg { display: block; width: 100%; height: 100%; }
-.to-vowel:hover,
-.to-vowel:focus-visible { opacity: 1; }
-.to-vowel:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
-body[data-view="penta"] .to-vowel { display: block; }
-.penta.is-dim ~ .to-vowel { opacity: 0; pointer-events: none; } /* ㄱ 이 나무로 날아가는 동안 */
-
-/* 모음 페이지로 넘어갈 때 화면이 잠깐 비워짐 */
-body.is-leaving { opacity: 0; transition: opacity .28s ease; }
+.theme-toggle svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.theme-toggle:hover,
+.theme-toggle:focus-visible { opacity: 1; }
+.theme-toggle:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+.theme-toggle .yy-dot {
+  transform: translateX(0);
+  transition: transform .6s cubic-bezier(.65, 0, .35, 1);
+}
+:root[data-theme="dark"] .theme-toggle .yy-dot { transform: translateX(-12px); } /* ㅏ → ㅓ */
+.penta.is-dim ~ .theme-toggle { opacity: 0; pointer-events: none; } /* ㄱ 이 나무로 날아가는 동안 */
