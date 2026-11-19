@@ -309,7 +309,7 @@
         x: ax + n.d * cu * size,
         y: ay - 0.5 * size,
         vx: (rand() - 0.5) * 0.03 * base,
-        vt: (0.08 + rand() * 0.07) * base,
+        vt: (0.12 + rand() * 0.1) * base, // 떨어지는 속도 (px/ms)
         amp: (0.03 + rand() * 0.05) * base,
         fq: 0.0012 + rand() * 0.0014,
         ph: rand() * Math.PI * 2,
@@ -623,7 +623,7 @@
   }
 
   // 떨어진 뒤 흐른 시간만으로 자리를 계산 (프레임이 끊겨도 같은 궤적)
-  const LEAF_TAU = 500; // 이 시간쯤 지나면 거의 최고 속도
+  const LEAF_TAU = 400; // 이 시간쯤 지나면 거의 최고 속도
   function drawLeaves(now) {
     for (let i = leaves.length - 1; i >= 0; i--) {
       const q = leaves[i];
