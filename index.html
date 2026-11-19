@@ -87,11 +87,21 @@
   </button>
 
   <!-- 오른쪽 위 음양 버튼: 밝은 화면 ㅏ(양) ↔ 어두운 화면 ㅓ(음). 점(·)이 기둥(ㅣ)을 건너감 (js/theme.js) -->
+  <!-- 왼쪽에 음양 표시(해·달 + 양/음, 모음 페이지와 같은 모양), 오른쪽에 ㅏ/ㅓ 글자. 어디를 눌러도 바뀜 -->
   <button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false" aria-label="어두운 화면으로">
-    <svg viewBox="-12 -12 24 24" aria-hidden="true">
-      <path d="M0 -9 V9" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-      <path class="yy-dot" d="M2 0 H10" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-    </svg>
+    <span class="pol-badge" aria-hidden="true">
+      <span class="pol-icon">
+        <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+      </span>
+      <span class="pol-name" id="pol-name">양(陽)</span>
+    </span>
+    <span class="yy-glyph" aria-hidden="true">
+      <svg viewBox="-12 -12 24 24">
+        <path d="M0 -9 V9" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+        <path class="yy-dot" d="M2 0 H10" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+      </svg>
+    </span>
   </button>
 
   <p class="sr-only" id="live" aria-live="polite"></p>

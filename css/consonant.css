@@ -278,18 +278,51 @@ body[data-view="tree"] .to-penta { display: block; }
   top: var(--edge);
   right: var(--edge);
   z-index: 4;
-  width: var(--nav-size);
+  display: flex;
+  align-items: center;
   height: var(--nav-size);
-  padding: calc(var(--nav-size) * .2);
+  padding: 0 0 0 calc(var(--nav-size) * .25);
   border: 0;
-  border-radius: 50%;
+  border-radius: calc(var(--nav-size) / 2);
   background: none;
   color: var(--fg);
   opacity: .8;
   cursor: pointer;
   transition: opacity .2s;
 }
-.theme-toggle svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.yy-glyph {
+  width: var(--nav-size);
+  height: var(--nav-size);
+  padding: calc(var(--nav-size) * .2);
+}
+.yy-glyph svg { display: block; width: 100%; height: 100%; overflow: visible; }
+
+/* 음양 표시: 해(양) ↔ 달(음) 아이콘 + 이름 (모음 페이지 오른쪽 위와 같은 모양) */
+.theme-toggle .pol-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: max(8px, min(.417vw, .741vh));
+  white-space: nowrap;
+  font-size: max(18px, min(.938vw, 1.667vh));
+  font-weight: 700;
+  line-height: 1;
+}
+.theme-toggle .pol-icon {
+  position: relative;
+  width: max(24px, min(1.25vw, 2.222vh));
+  height: max(24px, min(1.25vw, 2.222vh));
+}
+.theme-toggle .pol-icon svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transition: opacity .5s, transform .6s var(--ease-spring);
+}
+.theme-toggle .i-moon { opacity: 0; transform: rotate(-60deg) scale(.6); }
+:root[data-theme="dark"] .theme-toggle .i-sun { opacity: 0; transform: rotate(60deg) scale(.6); }
+:root[data-theme="dark"] .theme-toggle .i-moon { opacity: 1; transform: none; }
+
 .theme-toggle:hover,
 .theme-toggle:focus-visible { opacity: 1; }
 .theme-toggle:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }

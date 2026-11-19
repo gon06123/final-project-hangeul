@@ -6,6 +6,7 @@
   const root = document.documentElement;
   const btn = document.getElementById('theme-toggle');
   const live = document.getElementById('live');
+  const polName = document.getElementById('pol-name');
   if (!btn) return;
 
   const isDark = () => root.dataset.theme === 'dark';
@@ -15,6 +16,7 @@
     btn.setAttribute('aria-pressed', String(dark));
     btn.setAttribute('aria-label', dark ? '밝은 화면으로 (지금 음, ㅓ)' : '어두운 화면으로 (지금 양, ㅏ)');
     btn.title = dark ? 'ㅓ · 음 陰' : 'ㅏ · 양 陽';
+    if (polName) polName.textContent = dark ? '음(陰)' : '양(陽)';
   }
 
   btn.addEventListener('click', () => {
