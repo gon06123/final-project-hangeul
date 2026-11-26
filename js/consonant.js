@@ -135,8 +135,8 @@
   let fallTimer = 0;
   let wasDone = false;
 
-  // 오각형 첫 화면이 떠 있는 동안에는 나무가 반응하지 않음
-  const treeOn = () => document.body.dataset.view !== 'penta';
+  // 나무 화면일 때만 반응 (오각형 첫 화면·ㅇ 연못에서는 가만히)
+  const treeOn = () => document.body.dataset.view === 'tree';
 
   const each = (n, fn) => { fn(n); n.children.forEach((c) => each(c, fn)); };
 
@@ -664,7 +664,7 @@
   let ruleHold = { name: '', until: 0 }; // 손으로 바꾼 직후 잠깐
   let guidePhase = '';                    // 안내 획이 보여 주는 중인 쪽
   let shownRule = null;
-  const ruleEls = [...document.querySelectorAll('.rule')];
+  const ruleEls = [...rulesEl.querySelectorAll('.rule')];
   function updateRules(now) {
     const name = (now < ruleHold.until ? ruleHold.name : guidePhase) || shownRule || '';
     if (name === shownRule) return;
@@ -821,6 +821,68 @@
     },
   };
 
+  // 오래된(아래쪽) 글자일수록 옅어짐
+  const shadeTarget = (n) => Math.min(0.6, (gen - n.gen) * 0.1);
+
+  /* ---------- 저장 버튼: 지금 나무를 SVG 파일로 ---------- */
+  // 글자 하나를 다 자란 모양의 사각형들로 (drawLetter 의 p = 1, k = 1 과 같은 모양, 글자 좌표계)
+  function letterRects(type, ov, side) {
+    const r = [[-T / 2, -1, T, 1 + ov]];                                     // 세로획
+    r.push([-T / 2, -1, (type === 'ㄲ' ? KK_ARM1 : ARM) + T / 2, TH]);        // 가로획
+    if (type === 'ㅋ') r.push([0, MID - TH / 2, ARM * MID_END, TH]);          // 가획
+    if (type === 'ㄲ') {                                                      // 병서
+      const vx = kkCopyAt(side);
+      r.push([vx - T / 2, -1, T, 1 + ov], [vx - T / 2, -1, KK_LEN2 + T / 2, TH]);
+    }
+    return r;
+  }
+
+  function treeSVG(now) {
+    const f = (v) => +v.toFixed(4);
+    const nodes = [];
+    each(root, (n) => { if (!n.dropped && life(n, now) > 0) nodes.push(n); });
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    for (const n of nodes) {
+      const b = box(n);
+      x0 = Math.min(x0, b.x0); x1 = Math.max(x1, b.x1);
+      y0 = Math.min(y0, b.y0); y1 = Math.max(y1, b.y1);
+    }
+    const pad = ROOT * 0.15;
+    x0 -= pad; x1 += pad; y0 -= pad; y1 += pad;
+    const vw = x1 - x0, vh = y1 - y0;
+    const bg = `rgb(${paper.join(',')})`;
+    // 끝 가지부터 그려서, 부모 가로획이 이음새를 덮게 (화면과 같은 순서)
+    const groups = nodes.sort((a, b) => b.gen - a.gen).map((n) => {
+      const rects = letterRects(n.type, n.parent ? 0.06 : 0, n.conv ? n.conv.side : 1)
+        .map(([x, y, w, h]) => `<rect x="${f(x)}" y="${f(y)}" width="${f(w)}" height="${f(h)}"/>`).join('');
+      return `  <g fill="${color(shadeTarget(n))}" transform="translate(${f(n.x)} ${f(n.y)}) scale(${f(n.d * n.s)} ${f(n.s)})">${rects}</g>`;
+    });
+    return [
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${f(x0)} ${f(y0)} ${f(vw)} ${f(vh)}" width="${Math.round(vw * 2)}" height="${Math.round(vh * 2)}">`,
+      `  <title>ㄱ 나무</title>`,
+      `  <rect x="${f(x0)}" y="${f(y0)}" width="${f(vw)}" height="${f(vh)}" fill="${bg}"/>`,
+      ...groups,
+      `</svg>`,
+    ].join('\n');
+  }
+
+  document.getElementById('save-svg')?.addEventListener('click', () => {
+    if (!treeOn()) return; // 연못 화면이면 js/pond.js 가 저장
+    const svg = treeSVG(performance.now());
+    const d = new Date();
+    const p2 = (v) => String(v).padStart(2, '0');
+    const stamp = `${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}-${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}`;
+    const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ㄱ나무-${stamp}.svg`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    live.textContent = '지금 나무를 SVG 파일로 저장했습니다.';
+  });
+
   /* ---------- 매 프레임 ---------- */
   let lastT = performance.now();
   function frame(now) {
@@ -841,7 +903,7 @@
     const all = [];
     const ks = 1 - Math.exp(-dt / 500);
     each(root, (n) => {
-      const target = Math.min(0.6, (gen - n.gen) * 0.1);
+      const target = shadeTarget(n);
       n.shade += (target - n.shade) * ks;
       all.push(n);
     });

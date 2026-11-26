@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>자음 · 한글의 과학과 철학</title>
+  <title>자음 · 한글의 철학</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
   <link rel="stylesheet" href="css/common.css">
   <link rel="stylesheet" href="css/consonant.css">
@@ -24,25 +24,60 @@
   <canvas id="tree" role="img"
           aria-label="맨 아래의 ㄱ 에서 글자로 된 나무가 자라는 그림. 화면 어디든 가로로 한 획 그으면 획이 더해져 ㅋ, ㄱ 모양(가로로 가다 꺾어 아래로)을 그리면 ㄱ 을 나란히 써서 ㄲ 이 됩니다."></canvas>
 
-  <!-- 나무 화면 왼쪽 위: ㄱ 의 오행 (원판의 ㄱ 설명과 같은 내용) -->
+  <!-- ㅇ 연못: 꾹 누르고 있으면 ㅇ → ㆆ → ㅎ (가획), 떼면 떨어져 파문. ㅎ 옆에 ㅎ 을 떨어뜨리면 ㆅ (병서).
+       파문이 닿으면 수련 봉오리가 피고 떠 있는 글자도 따라 울림. 다 피우면 통함 (js/pond.js) -->
+  <canvas id="pond" role="img"
+          aria-label="고요한 수면. 꾹 누르고 있으면 손끝의 ㅇ 이 부풀다가 획이 붙어 ㆆ, ㅎ 이 되고, 떼면 그 글자가 떨어져 파문이 퍼집니다. 획이 많을수록 물결이 셉니다. ㅎ 옆에 ㅎ 을 하나 더 떨어뜨리면 둘이 붙어 ㆅ 이 됩니다. 획이 많을수록 파문이 멀리 닿습니다. 파문이 수련 봉오리에 닿으면 꽃이 피고, 떠 있는 글자에 닿으면 그 글자도 따라 울려 파문이 번집니다. 봉오리를 모두 피우면 연못이 하나로 통합니다. Space 나 Enter 를 누르고 있어도 됩니다."></canvas>
+
+  <!-- 나무 화면 왼쪽 가운데: ㄱ 의 오행(위) + 가획·병서 설명(아래) 한 덩이 -->
+  <div class="side-info" data-scene="tree">
   <div class="tree-element" aria-label="ㄱ 의 오행">
     <p class="el-name"><span class="el-hanja">木</span>나무 목</p>
     <p class="el-sense">성장 · 뻗어 나감</p>
   </div>
 
-  <!-- 나무 화면 왼쪽: 가획·병서 설명. 같은 자리에 지금 안내하거나 방금 한 쪽 하나만 보임 -->
+  <!-- 가획·병서 설명. 같은 자리에 지금 안내하거나 방금 한 쪽 하나만 보임 -->
   <aside class="rules" id="rules" aria-label="자음을 만드는 두 원리">
     <div class="rule" data-rule="가획">
-      <p class="rule-name">가획 <span class="rule-hanja">加劃</span></p>
+      <p class="rule-name">가획</p>
       <p class="rule-eg">ㄱ → ㅋ</p>
       <p class="rule-desc">기본자에 획을 하나 더하면, 소리가 더 세집니다.</p>
     </div>
     <div class="rule" data-rule="병서">
-      <p class="rule-name">병서 <span class="rule-hanja">竝書</span></p>
+      <p class="rule-name">병서</p>
       <p class="rule-eg">ㄱ → ㄲ</p>
       <p class="rule-desc">같은 글자를 나란히 써서, 된소리를 나타냅니다.</p>
     </div>
   </aside>
+  </div>
+
+  <!-- 연못 화면 왼쪽 가운데: ㅇ 의 오행 + 가획·병서·통함 설명 (나무와 같은 자리·모양). 통함 칸의 ●○ 는 js/pond.js 가 채움 -->
+  <div class="side-info" data-scene="pond">
+  <div class="tree-element" aria-label="ㅇ 의 오행">
+    <p class="el-name"><span class="el-hanja">水</span>물 수</p>
+    <p class="el-sense">흐름 · 통함</p>
+  </div>
+
+  <aside class="rules" id="pond-rules" aria-label="ㅇ 에서 글자를 만드는 두 원리">
+    <div class="rule" data-rule="가획">
+      <p class="rule-name">가획</p>
+      <p class="rule-eg">ㅇ → ㆆ → ㅎ</p>
+      <p class="rule-desc">획을 더할수록 목구멍소리가 세지고, 물결도 더 멀리 닿습니다.</p>
+      <p class="rule-note">ㆆ(여린히읗)은 훈민정음 초성 17자의 하나였지만, 15세기 뒤로 사라져 지금은 쓰지 않습니다.</p>
+    </div>
+    <div class="rule" data-rule="병서">
+      <p class="rule-name">병서</p>
+      <p class="rule-eg">ㅎ → ㆅ</p>
+      <p class="rule-desc">같은 글자를 나란히 써서, 두 겹 물결이 퍼집니다.</p>
+      <p class="rule-note">ㆅ 은 훈민정음에서 洪(홍)의 첫소리로 쓰였지만, 15세기 뒤로 사라져 지금은 쓰지 않습니다.</p>
+    </div>
+    <div class="rule" data-rule="통함">
+      <p class="rule-name">통함</p>
+      <p class="rule-eg" id="pond-progress" aria-hidden="true">○○○○○</p>
+      <p class="rule-desc">파문이 닿으면 봉오리가 피고, 떠 있는 글자도 따라 울립니다. 큰 봉오리일수록 단단해서 센 파문이 닿아야 핍니다. 모두 피우면 연못이 하나로 통합니다.</p>
+    </div>
+  </aside>
+  </div>
 
   <!-- 첫 화면: 화면 아래로 잘린 오각형 원판. 다섯 칸에 ㄱ ㄴ ㅁ ㅅ ㅇ (칸은 js/penta.js 가 그림) -->
   <section class="penta" id="penta" aria-label="다섯 기본 자음">
@@ -55,39 +90,179 @@
         <p class="el-eyebrow">음양오행 陰陽五行</p>
         <p class="el-name"><span class="el-hanja">木</span>나무 목</p>
         <p class="el-sense">성장 · 뻗어 나감</p>
-        <p class="el-meta">혀뿌리를 본뜸 · ㄱ → ㅋ</p>      </article>
+        <p class="el-meta">혀뿌리를 본뜸 · ㄱ → ㅋ</p>
+      </article>
       <article class="element" data-k="1">
         <p class="el-eyebrow">음양오행 陰陽五行</p>
         <p class="el-name"><span class="el-hanja">火</span>불 화</p>
         <p class="el-sense">확산 · 타오름</p>
-        <p class="el-meta">혀를 본뜸 · ㄴ → ㄷ → ㅌ</p>      </article>
+        <p class="el-meta">혀를 본뜸 · ㄴ → ㄷ → ㅌ</p>
+      </article>
       <article class="element" data-k="2">
         <p class="el-eyebrow">음양오행 陰陽五行</p>
         <p class="el-name"><span class="el-hanja">土</span>흙 토</p>
         <p class="el-sense">모임 · 포용</p>
-        <p class="el-meta">입을 본뜸 · ㅁ → ㅂ → ㅍ</p>      </article>
+        <p class="el-meta">입을 본뜸 · ㅁ → ㅂ → ㅍ</p>
+      </article>
       <article class="element" data-k="3">
         <p class="el-eyebrow">음양오행 陰陽五行</p>
         <p class="el-name"><span class="el-hanja">金</span>쇠 금</p>
         <p class="el-sense">단단함 · 날카로움</p>
-        <p class="el-meta">이를 본뜸 · ㅅ → ㅈ → ㅊ</p>      </article>
+        <p class="el-meta">이를 본뜸 · ㅅ → ㅈ → ㅊ</p>
+      </article>
       <article class="element" data-k="4">
         <p class="el-eyebrow">음양오행 陰陽五行</p>
         <p class="el-name"><span class="el-hanja">水</span>물 수</p>
         <p class="el-sense">흐름 · 통함</p>
-        <p class="el-meta">목구멍을 본뜸 · ㅇ → ㆆ → ㅎ</p>      </article>
+        <p class="el-meta">목구멍을 본뜸 · ㅇ → ㆆ → ㅎ</p>
+      </article>
     </div>
   </section>
 
-  <!-- 나무 화면에서 원판으로 돌아가기: ← 화살표 (가는 선, 끝은 각지게 — 글자들처럼) -->
+  <!-- 원판 화면 아래 가운데: 프로젝트 소개 · 공유 (js/links.js) · 언어 (js/lang.js). 원판 화면에서만 보임 -->
+  <nav class="main-links" aria-label="프로젝트">
+    <!-- 윗줄: About project 단독 -->
+    <button class="main-link" id="open-about" type="button" aria-haspopup="dialog">About project</button>
+    <!-- 아랫줄: Share · Language -->
+    <div class="main-row">
+      <div class="share-wrap">
+        <button class="main-link" id="share" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="share-menu">Share</button>
+        <!-- Share 를 누르면 위에 뜨는 작은 검은 창: SNS 이름을 글자로 (js/links.js 가 주소를 붙임) -->
+        <div class="share-menu" id="share-menu" role="menu" hidden>
+          <button role="menuitem" type="button" data-sns="instagram">Instagram</button>
+          <button role="menuitem" type="button" data-sns="kakao">KakaoTalk</button>
+          <a role="menuitem" data-sns="x" target="_blank" rel="noopener">X</a>
+          <a role="menuitem" data-sns="facebook" target="_blank" rel="noopener">Facebook</a>
+          <a role="menuitem" data-sns="threads" target="_blank" rel="noopener">Threads</a>
+          <a role="menuitem" data-sns="line" target="_blank" rel="noopener">LINE</a>
+          <a role="menuitem" data-sns="linkedin" target="_blank" rel="noopener">LinkedIn</a>
+          <a role="menuitem" data-sns="email">Email</a>
+          <button role="menuitem" type="button" data-sns="copy">Copy link</button>
+        </div>
+      </div>
+      <span class="main-sep" aria-hidden="true">·</span>
+      <div class="share-wrap">
+        <button class="main-link" id="lang" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="lang-menu">Language</button>
+        <!-- Language 를 누르면 위에 뜨는 작은 검은 창 (js/lang.js) -->
+        <div class="share-menu" id="lang-menu" role="menu" hidden>
+          <button role="menuitemradio" type="button" data-lang="ko" lang="ko" aria-checked="true">한국어</button>
+          <button role="menuitemradio" type="button" data-lang="en" lang="en" aria-checked="false">English</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- About project: 프로젝트 소개 창 -->
+  <dialog class="about" id="about" aria-labelledby="about-title">
+    <!-- 왼쪽 그림: 자음 = 오행(바깥 원, 상생 순서), 모음 = 음양(가운데) -->
+    <figure class="about-fig">
+      <svg viewBox="-140 -138 280 260" role="img" aria-label="음양오행과 한글: 바깥 원에 다섯 기본 자음 ㄱ 木 어금니, ㄴ 火 혀, ㅁ 土 입술, ㅅ 金 이, ㅇ 水 목구멍이 상생 차례로 놓이고, 가운데에 모음의 바탕 · ㅡ ㅣ 와 점이 위·바깥인 양 ㅗ ㅏ, 아래·안인 음 ㅜ ㅓ.">
+        <!-- 바깥 원: 원판과 같은 둥근 길. 화살표는 상생 순서 (木 → 火 → 土 → 金 → 水 → 木) -->
+        <circle class="fig-ring" r="92" pathLength="1"/>
+        <g class="fig-arrows">
+          <path d="M-3 -3.5 L2 0 L-3 3.5" transform="translate(54.1 -74.4) rotate(36)"/>
+          <path d="M-3 -3.5 L2 0 L-3 3.5" transform="translate(87.5 28.4) rotate(108)"/>
+          <path d="M-3 -3.5 L2 0 L-3 3.5" transform="translate(0 92) rotate(180)"/>
+          <path d="M-3 -3.5 L2 0 L-3 3.5" transform="translate(-87.5 28.4) rotate(252)"/>
+          <path d="M-3 -3.5 L2 0 L-3 3.5" transform="translate(-54.1 -74.4) rotate(324)"/>
+        </g>
+        <!-- 다섯 기본 자음: 글자 + 오행 + 소리 나는 자리 -->
+        <g class="fig-node" style="--n: 0" transform="translate(0 -92)">
+          <g class="fig-pop"><circle r="18"/><text class="fig-letter">ㄱ</text></g>
+          <text class="fig-el" y="-40">木</text><text class="fig-organ" y="-28">어금니</text>
+        </g>
+        <g class="fig-node" style="--n: 1" transform="translate(87.5 -28.4)">
+          <g class="fig-pop"><circle r="18"/><text class="fig-letter">ㄴ</text></g>
+          <text class="fig-el fig-side-r" x="24" y="-6">火</text><text class="fig-organ fig-side-r" x="24" y="6">혀</text>
+        </g>
+        <g class="fig-node" style="--n: 2" transform="translate(54.1 74.4)">
+          <g class="fig-pop"><circle r="18"/><text class="fig-letter">ㅁ</text></g>
+          <text class="fig-el" y="29.5">土</text><text class="fig-organ" y="41.5">입술</text>
+        </g>
+        <g class="fig-node" style="--n: 3" transform="translate(-54.1 74.4)">
+          <g class="fig-pop"><circle r="18"/><text class="fig-letter">ㅅ</text></g>
+          <text class="fig-el" y="29.5">金</text><text class="fig-organ" y="41.5">이</text>
+        </g>
+        <g class="fig-node" style="--n: 4" transform="translate(-87.5 -28.4)">
+          <g class="fig-pop"><circle r="18"/><text class="fig-letter">ㅇ</text></g>
+          <text class="fig-el fig-side-l" x="-24" y="-6">水</text><text class="fig-organ fig-side-l" x="-24" y="6">목구멍</text>
+        </g>
+        <!-- 가운데: 음양. 위에 모음의 바탕 · ㅡ ㅣ (하늘·땅·사람),
+             아래에 점(짧은 획)의 방향에 따른 음양: 위·바깥 ㅗ ㅏ = 양, 아래·안 ㅜ ㅓ = 음 -->
+        <g class="fig-core">
+          <circle class="fig-core-ring" r="54"/>
+          <text class="fig-core-name" y="-40">음양 陰陽</text>
+          <g class="fig-trio">
+            <circle cx="-14" cy="-25" r="2.4"/>
+            <line x1="-5.5" y1="-25" x2="5.5" y2="-25"/>
+            <line x1="14" y1="-31" x2="14" y2="-19"/>
+          </g>
+          <text class="fig-core-cap" x="-14" y="-12">하늘</text>
+          <text class="fig-core-cap" x="0" y="-12">땅</text>
+          <text class="fig-core-cap" x="14" y="-12">사람</text>
+          <line class="fig-core-div" x1="0" y1="-3" x2="0" y2="38"/>
+          <g class="fig-yy">
+            <!-- 양: ㅗ ㅏ (점이 위·바깥) -->
+            <line class="fig-long" x1="-35" y1="14" x2="-21" y2="14"/><line class="fig-short" x1="-28" y1="14" x2="-28" y2="5"/><circle cx="-28" cy="5" r="2.1"/>
+            <line class="fig-long" x1="-15" y1="3" x2="-15" y2="17"/><line class="fig-short" x1="-15" y1="10" x2="-7" y2="10"/><circle cx="-7" cy="10" r="2.1"/>
+            <!-- 음: ㅜ ㅓ (점이 아래·안) -->
+            <line class="fig-long" x1="5" y1="6" x2="19" y2="6"/><line class="fig-short" x1="12" y1="6" x2="12" y2="15"/><circle cx="12" cy="15" r="2.1"/>
+            <line class="fig-long" x1="31" y1="3" x2="31" y2="17"/><line class="fig-short" x1="31" y1="10" x2="23" y2="10"/><circle cx="23" cy="10" r="2.1"/>
+          </g>
+          <text class="fig-yy-name" x="-20" y="26">양 陽</text>
+          <text class="fig-yy-cap" x="-20" y="34">점이 위·바깥</text>
+          <text class="fig-yy-name" x="20" y="26">음 陰</text>
+          <text class="fig-yy-cap" x="20" y="34">점이 아래·안</text>
+        </g>
+      </svg>
+    </figure>
+
+    <div class="about-body">
+    <h2 class="about-title" id="about-title">한글의 철학</h2>
+    <p>한글의 자음은 소리 내는 기관의 모양을, 모음은 하늘·땅·사람을 본떠 만들었습니다. 이 프로젝트는 『훈민정음』 해례본이 밝힌 글자 만드는 원리를, 직접 획을 긋고 돌리며 만져 보는 인터랙티브 웹입니다.</p>
+    <ul class="about-list">
+      <li><b>음양오행이란</b> 세상 모든 것이 서로 짝을 이루는 두 기운, 음(陰)과 양(陽), 그리고 나무(木)·불(火)·흙(土)·쇠(金)·물(水) 다섯 기운이 돌고 어울리며 이루어진다고 보는 동아시아의 오랜 생각입니다.</li>
+      <li><b>한글과의 관계</b> 『훈민정음』 해례본은 “하늘과 땅의 이치는 음양오행일 뿐”이라 하며, 사람의 말소리에도 같은 이치가 있다고 보고 글자를 만들었습니다.</li>
+      <li><b>자음 · 오행</b> 소리 나는 자리를 다섯으로 나눠 오행에 짝지었습니다. 목구멍(ㅇ)은 깊고 젖어 물, 어금니(ㄱ)는 어긋나고 길어 나무, 혀(ㄴ)는 날래게 움직여 불, 이(ㅅ)는 단단해 쇠, 입술(ㅁ)은 모나고 다물어져 흙입니다.</li>
+      <li><b>모음 · 음양</b> 모음은 하늘(·)·땅(ㅡ)·사람(ㅣ)을 본떴습니다. 하늘은 양, 땅은 음, 사람은 둘을 잇습니다. 점이 위·바깥에 붙은 ㅗ ㅏ 는 양, 아래·안쪽에 붙은 ㅜ ㅓ 는 음입니다.</li>
+    </ul>
+    <p class="about-copy">© 2026 한글의 철학. All rights reserved.</p>
+    </div>
+  </dialog>
+
+  <!-- 처음 들어오면: 프로젝트 소개. 천·지·인(· ㅡ ㅣ)과 다섯 기본 자음이 써지고,
+       누르면 자음들은 원판으로 내려가고 · 와 ㅣ 는 음양 버튼이 됨 (js/penta.js) -->
+  <section class="intro" id="intro" aria-label="소개">
+    <svg class="intro-svg" aria-hidden="true"></svg>
+    <div class="intro-text">
+      <h1 class="intro-title" style="--d: 2300ms">한글의 철학</h1>
+      <p class="intro-desc" style="--d: 2650ms">자음은 소리 내는 기관의 모양을, 모음은 하늘·땅·사람을 본떠 만들었습니다.</p>
+      <p class="intro-desc" style="--d: 2900ms">그 밑바탕에 놓인 음양오행의 이치를, 직접 획을 그으며 느껴 보세요.</p>
+      <button class="intro-hint" type="button" style="--d: 3500ms">화면을 누르면 시작합니다</button>
+    </div>
+  </section>
+
+  <!-- 나무·연못 화면에서 원판으로 돌아가기: ← 화살표 (가는 선, 끝은 각지게 — 글자들처럼). 왼쪽 위 동그라미 버튼 -->
   <button class="to-penta" id="to-penta" type="button" aria-label="원판으로 돌아가기">
     <svg viewBox="-12 -12 24 24" aria-hidden="true">
       <path d="M8 0 H-8 M-2 -6 L-8 0 L-2 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="butt" stroke-linejoin="miter"/>
     </svg>
   </button>
 
-  <!-- 오른쪽 위 음양 버튼: 밝은 화면 ㅏ(양) ↔ 어두운 화면 ㅓ(음). 점(·)이 기둥(ㅣ)을 건너감 (js/theme.js) -->
-  <!-- 왼쪽에 음양 표시(해·달 + 양/음, 모음 페이지와 같은 모양), 오른쪽에 ㅏ/ㅓ 글자. 어디를 눌러도 바뀜 -->
+  <!-- 오른쪽 위: [음양]. 저장 버튼도 이 안에 있지만 css 로 왼쪽 위(돌아가기 버튼 오른쪽)에 고정됨 -->
+  <div class="top-right">
+  <!-- 나무·연못 화면: 지금 화면을 SVG 파일로 저장 (js/consonant.js, js/pond.js) -->
+  <div class="tree-tools" role="group" aria-label="화면 도구">
+    <!-- 저장: 디스켓 모양 (돌아가기 ← 화살표와 헷갈리지 않게. 같은 가는 선, 각진 끝) -->
+    <button class="tool-btn" id="save-svg" type="button" aria-label="지금 화면을 SVG 파일로 저장" title="SVG로 저장">
+      <svg viewBox="-12 -12 24 24" aria-hidden="true">
+        <path d="M-8 -8 H5 L8 -5 V8 H-8 Z M-4 -8 V-3 H3 V-8 M-5 8 V2 H5 V8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="butt" stroke-linejoin="miter"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- 음양 버튼: 누를 때마다 ㅏ(양) → ㅓ(음) → ㅗ(양) → ㅜ(음). 양이면 밝은 화면, 음이면 어두운 화면 (js/theme.js) -->
+  <!-- 왼쪽에 음양 표시(해·달 + 양/음), 오른쪽에 모음 글자. 어디를 눌러도 바뀜 -->
   <button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false" aria-label="어두운 화면으로">
     <span class="pol-badge" aria-hidden="true">
       <span class="pol-icon">
@@ -97,17 +272,26 @@
       <span class="pol-name" id="pol-name">양(陽)</span>
     </span>
     <span class="yy-glyph" aria-hidden="true">
+      <!-- 가운데 기둥(ㅣ, 돌면 ㅡ) + 네 방향 점. 점이 켜진 뒤 기둥 쪽으로 늘어나 획이 됨 (ㅏ ㅓ ㅗ ㅜ).
+           기둥을 맨 나중에 그려서, 기둥과 같은 방향의 두 점은 기둥 밑에 가려짐 -->
       <svg viewBox="-12 -12 24 24">
-        <path d="M0 -9 V9" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-        <path class="yy-dot" d="M2 0 H10" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+        <g class="yy-mark" data-dir="r"><line x1="7" y1="0" x2="2" y2="0" pathLength="1"/><circle cx="7" cy="0" r="1.3"/></g>
+        <g class="yy-mark" data-dir="d" transform="rotate(90)"><line x1="7" y1="0" x2="2" y2="0" pathLength="1"/><circle cx="7" cy="0" r="1.3"/></g>
+        <g class="yy-mark" data-dir="l" transform="rotate(180)"><line x1="7" y1="0" x2="2" y2="0" pathLength="1"/><circle cx="7" cy="0" r="1.3"/></g>
+        <g class="yy-mark" data-dir="u" transform="rotate(270)"><line x1="7" y1="0" x2="2" y2="0" pathLength="1"/><circle cx="7" cy="0" r="1.3"/></g>
+        <line class="yy-bar" x1="0" y1="-8.5" x2="0" y2="8.5"/>
       </svg>
     </span>
   </button>
+  </div>
 
   <p class="sr-only" id="live" aria-live="polite"></p>
 
   <script src="js/consonant.js"></script>
+  <script src="js/pond.js"></script>
   <script src="js/penta.js"></script>
   <script src="js/theme.js"></script>
+  <script src="js/links.js"></script>
+  <script src="js/lang.js"></script>
 </body>
 </html>

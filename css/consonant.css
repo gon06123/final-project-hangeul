@@ -20,7 +20,7 @@ body {
 }
 body[data-view="penta"] { cursor: default; }
 
-/* 나무는 화면 전체 캔버스에 그림 (배경은 body 의 흰색) */
+/* 나무는 화면 전체 캔버스에 그림 (배경은 body 의 바탕색) */
 #tree {
   position: fixed;
   inset: 0;
@@ -30,50 +30,66 @@ body[data-view="penta"] { cursor: default; }
   touch-action: none; /* 손가락으로 획을 긋고 끌 수 있게 */
   cursor: crosshair;  /* 어디든 긋는 곳. 다 자라면 js 가 pointer 로 바꿈 */
 }
-body[data-view="penta"] #tree { visibility: hidden; }
+body:not([data-view="tree"]) #tree { visibility: hidden; }
 
-/* ---------- 나무 화면 왼쪽 위: ㄱ 의 오행 (木 나무 목 / 성장 · 뻗어 나감) ---------- */
-/* 돌아가기(←) 버튼 바로 아래, 가획·병서 설명과 같은 세로줄 */
-.tree-element {
+/* ㅇ 연못도 화면 전체 캔버스 (js/pond.js) */
+#pond {
   position: fixed;
-  top: calc(var(--edge) + var(--nav-size) + max(8px, min(.417vw, .741vh)));
-  left: calc(var(--edge) + var(--nav-size) * .2735);
-  z-index: 1;
-  pointer-events: none;
-  transition: opacity .4s ease;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: crosshair;
+  /* 들어올 때: 수면이 살짝 크게 보였다가 가라앉듯 제자리로, 스르르 나타남 */
+  transition: opacity .7s ease, transform 1s cubic-bezier(.22, 1, .36, 1), visibility 0s;
 }
+body:not([data-view="pond"]) #pond {
+  visibility: hidden;
+  opacity: 0;
+  transform: scale(1.03);
+  /* 나갈 때: ㄱ 이 날아 돌아가는 만큼(0.9초) 천천히 사라진 뒤에 숨김 */
+  transition: opacity .9s cubic-bezier(.65, 0, .35, 1), transform .9s cubic-bezier(.65, 0, .35, 1), visibility 0s .9s;
+}
+
+/* 화면마다 제 오행·원리 설명만 보임 (data-scene = 그 화면의 data-view). 나타날 땐 화면보다 조금 늦게 */
+[data-scene] { transition: opacity .5s ease .2s, visibility 0s; }
+body:not([data-view="tree"]) [data-scene="tree"],
+body:not([data-view="pond"]) [data-scene="pond"] {
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity .35s ease, visibility 0s .35s;
+}
+
+/* ---------- 나무·연못 화면 왼쪽 가운데: 오행(木 나무 목 …) + 원리 설명(가획·병서·통함)을 한 덩이로 ---------- */
+/* 오행 덩이는 화면 세로 가운데 선 바로 위, 설명 카드는 그 아래에 매닮 →
+   설명 카드 수·길이가 화면마다 달라도(나무 2장, 연못 3장 + 덧붙인 말) 木·水 자리가 같음.
+   획을 긋는 데 방해되지 않게 눌리지 않음. 나무·연못은 이 옆 빈 곳에 맞춰 자리 잡음 (js/consonant.js, js/pond.js) */
+.side-info {
+  --info-gap: max(24px, min(1.875vw, 3.333vh)); /* 오행과 설명 사이 */
+  position: fixed;
+  left: calc(var(--edge) + max(4px, min(.26vw, .463vh))); /* 왼쪽 위 버튼들과 같은 세로줄에서 살짝 안쪽 (1920×1080 에서 5px) */
+  top: 50%;
+  z-index: 1;
+  width: max(220px, min(17.188vw, 30.556vh)); /* 330px */
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+  transition: opacity .5s ease .2s, visibility 0s; /* 나타날 땐 화면보다 조금 늦게 (숨길 때는 위 [data-scene] 규칙) */
+}
+.side-info .tree-element {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + var(--info-gap) / 2);
+}
+.side-info .rules { margin-top: calc(var(--info-gap) / 2); }
 .tree-element p { margin: 0; }
 .tree-element .el-name { margin-top: 0 !important; }
-body[data-view="penta"] .tree-element { visibility: hidden; opacity: 0; }
-/* 좁은 화면: 돌아가기 버튼 오른쪽에 나란히 (아래는 가획·병서 설명 자리) */
-@media (max-width: 700px) {
-  .tree-element {
-    top: var(--edge);
-    left: calc(var(--edge) + var(--nav-size) + 4px);
-    height: var(--nav-size);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
-}
+/* 원리 설명: 카드들이 같은 칸에 겹쳐 있어서, 아무것도 안 보일 때도 자리는 그대로 */
+.rules { display: grid; }
 
-/* ---------- 나무 화면 왼쪽: 가획·병서 설명 ---------- */
-/* 획을 긋는 데 방해되지 않게 눌리지 않음. 나무는 이 옆 빈 곳에 맞춰 자리 잡음 (js/consonant.js) */
-.rules {
-  position: fixed;
-  /* 왼쪽 위 돌아가기(←) 아이콘의 왼쪽 끝과 한 줄로: 버튼 left + 안쪽 여백 20% + 아이콘 svg 안 화살촉 끝까지 (2.94/24 × 60%) */
-  left: calc(var(--edge) + var(--nav-size) * .2735);
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 1;
-  width: max(200px, min(15.625vw, 27.778vh));
-  display: grid;
-  pointer-events: none;
-  transition: opacity .4s ease;
-}
-body[data-view="penta"] .rules { visibility: hidden; opacity: 0; }
-
-/* 두 설명을 같은 칸에 겹쳐 두고, 고른 하나만 보임 (서로 스르르 바뀜) */
+/* 카드들을 같은 칸에 겹쳐 두고, 고른 하나만 보임 (서로 스르르 바뀜) */
 .rule {
   grid-area: 1 / 1;
   opacity: 0;
@@ -83,36 +99,42 @@ body[data-view="penta"] .rules { visibility: hidden; opacity: 0; }
 .rule.is-active { opacity: 1; transform: none; }
 .rule p { margin: 0; }
 .rule-name {
-  font-size: max(20px, min(1.458vw, 2.593vh));
+  font-size: max(19px, min(1.25vw, 2.222vh)); /* 1920×1080 에서 24px */
   font-weight: 700;
   letter-spacing: -.02em;
 }
-.rule-hanja {
-  margin-left: .3em;
-  font-size: .6em;
-  font-weight: 500;
-  color: var(--muted);
-}
 .rule-eg {
-  margin-top: max(4px, min(.208vw, .37vh)) !important;
-  font-size: max(16px, min(1.042vw, 1.852vh));
+  margin-top: max(4px, min(.26vw, .463vh)) !important;
+  font-size: max(15px, min(.938vw, 1.667vh)); /* 18px */
   font-weight: 600;
 }
 .rule-desc {
-  margin-top: max(8px, min(.417vw, .741vh)) !important;
-  font-size: max(14px, min(.833vw, 1.481vh));
+  margin-top: max(6px, min(.365vw, .648vh)) !important;
+  font-size: max(14px, min(.833vw, 1.481vh)); /* 16px */
   line-height: 1.55;
   color: var(--soft);
 }
-/* 좁은 화면: 위쪽(돌아가기 버튼 아래)에 */
+/* 덧붙인 짧은 역사 설명 (ㆆ·ㆅ): 본문과 같은 크기, 위에 가는 선으로 나눠 덧붙인 말임을 보임 */
+.rule-note {
+  margin-top: max(10px, min(.521vw, .926vh)) !important;
+  padding-top: max(8px, min(.417vw, .741vh));
+  border-top: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+  font-size: max(14px, min(.833vw, 1.481vh)); /* 16px — 설명과 같게 */
+  line-height: 1.55;
+  color: var(--soft);
+}
+/* 좁은 화면: 가운데 대신 위쪽에 (아래는 나무·연못 자리) */
 @media (max-width: 700px) {
-  .rules {
-    top: calc(var(--edge) + var(--nav-size) + 4px);
-    left: calc(var(--edge) + var(--nav-size) * .2735);
+  .side-info {
+    top: calc(var(--edge) * 2 + var(--side-btn)); /* 왼쪽 위 버튼들 아래 */
+    left: var(--edge);
     right: 16px;
     width: auto;
-    transform: none;
+    gap: 12px;
   }
+  /* 좁은 화면에서는 위에서부터 차례로 쌓음 */
+  .side-info .tree-element { position: static; }
+  .side-info .rules { margin-top: 0; }
 }
 
 /* ---------- 첫 화면: 화면 아래로 잘린 커다란 오각형 원판 ---------- */
@@ -125,7 +147,9 @@ body[data-view="penta"] .rules { visibility: hidden; opacity: 0; }
   cursor: grab;
 }
 .penta.is-dragging { cursor: grabbing; }
-body[data-view="tree"] .penta { visibility: hidden; }
+/* 원판은 흐려지는(is-dim) 것을 다 보여 준 뒤에 숨김 → 연못으로 바로 넘어갈 때도 스르르 사라짐 */
+.penta { transition: visibility 0s; }
+body:not([data-view="penta"]) .penta { visibility: hidden; transition: visibility 0s .8s; }
 
 /* 크기와 자리는 js/penta.js 가 화면에 맞춰 정함 (원판 중심 = 화면 아래 가장자리 조금 밑) */
 .penta-svg {
@@ -136,17 +160,8 @@ body[data-view="tree"] .penta { visibility: hidden; }
   outline: none;
 }
 
-.penta-art { transition: opacity .45s ease; }
+.penta-art { transition: opacity .8s ease; } /* 연못에서 돌아올 때 천천히 다시 떠오름 */
 .penta.is-dim .penta-art { opacity: 0; }
-
-/* 원판 회전: 놓으면 가장 가까운 칸이 위로 오며 살짝 튕김 */
-.wheel {
-  transform-box: view-box;
-  transform-origin: 0 0; /* viewBox 의 (0,0) = 오각형 중심 */
-  transform: rotate(var(--rot, 0deg));
-  transition: transform .9s cubic-bezier(.22, 1, .36, 1); /* 튕김 없이 부드럽게 감속 */
-}
-.penta.is-dragging .wheel { transition: none; }
 
 .edge {
   fill: none;
@@ -159,7 +174,7 @@ body[data-view="tree"] .penta { visibility: hidden; }
 /* 글자 뒤 동그란 바탕: 원 선을 끊어 글자가 선 위에 얹혀 보이게 함 */
 .cell-dot { fill: var(--bg); }
 /* 맨 위에 온 칸이 고른 칸. ㄱ 이 위에 있을 때만 눌러서 열 수 있음 */
-.cell.is-open.is-top { cursor: pointer; }
+.cell.is-open.is-top .mark { cursor: pointer; } /* 눌러서 열리는 곳은 글자뿐 */
 
 /* 원판 글자: Pretendard SemiBold (크기·자리는 js/penta.js 의 fitLetters) */
 .letter {
@@ -172,6 +187,9 @@ body[data-view="tree"] .penta { visibility: hidden; }
 /* 글자에 마우스를 올리면(또는 키보드로 고른 위 칸) 살짝 커짐 */
 .penta:not(.is-dragging) .mark:hover .letter,
 .penta-svg:focus-visible .cell.is-top .letter { transform: scale(1.12); }
+/* 글꼴 글자는 누르는 범위가 잉크보다 훨씬 큰 글자 칸(아래 설명 글까지 덮음)이라 누름을 받지 않고,
+   글자 뒤 동그란 바탕(.cell-dot)이 누르는 자리가 됨 */
+.penta-svg .glyph { pointer-events: none; }
 .glyph-ref { fill: none; visibility: hidden; } /* 날아갈 ㄱ 의 자리만 재는 보이지 않는 ㄱ */
 .cell.is-locked .letter { opacity: .25; } /* 아직 비어 있는 칸 */
 .cell.is-flying .letter { visibility: hidden; }
@@ -202,14 +220,14 @@ body[data-view="tree"] .penta { visibility: hidden; }
 .element.is-active { opacity: 1; transform: none; transition-delay: .12s; }
 .element p { margin: 0; }
 .el-eyebrow {
-  font-size: max(12px, min(.729vw, 1.296vh));
+  font-size: max(13px, min(.807vw, 1.435vh)); /* 15.5px */
   font-weight: 600;
   letter-spacing: .08em;
   color: var(--muted);
 }
 .el-name {
   margin-top: max(6px, min(.312vw, .556vh)) !important;
-  font-size: max(22px, min(1.667vw, 2.963vh));
+  font-size: max(24px, min(1.875vw, 3.333vh)); /* 36px */
   font-weight: 700;
   letter-spacing: -.02em;
   line-height: 1.3;
@@ -222,17 +240,376 @@ body[data-view="tree"] .penta { visibility: hidden; }
 /* 오행의 시각적 해석 (성장 · 뻗어 나감 …) */
 .el-sense {
   margin-top: max(6px, min(.312vw, .556vh)) !important;
-  font-size: max(16px, min(1.042vw, 1.852vh));
+  font-size: max(17px, min(1.146vw, 2.037vh)); /* 22px */
   font-weight: 600;
   color: var(--soft);
 }
 /* 본뜬 발음기관 · 가획 */
 .el-meta {
   margin-top: max(6px, min(.312vw, .556vh)) !important;
-  font-size: max(13px, min(.781vw, 1.389vh));
+  font-size: max(14px, min(.885vw, 1.574vh)); /* 17px */
   font-weight: 600;
   color: var(--muted);
 }
+
+/* 소개 화면이 떠 있는 동안: 원판 글자는 숨기고(소개의 자음이 날아와 그 자리를 채움),
+   원 테두리·글자 바탕은 자음이 날아오는 동안 스르르 나타남 */
+.edge, .cell-dot { transition: opacity .8s ease; }
+.penta.is-intro .letter { visibility: hidden; }
+.penta.is-intro .elements { opacity: 0; }
+.penta.is-intro-frame .edge,
+.penta.is-intro-frame .cell-dot { opacity: 0; }
+/* 음양 버튼도 처음엔 없음: 소개의 · 와 ㅣ 가 날아와 ㅏ(ㅓ)가 되면 나타나고, 해·달 표시는 그 뒤 스르르 */
+.penta.is-intro ~ .top-right .theme-toggle { pointer-events: none; }
+.penta.is-intro ~ .top-right .yy-glyph { visibility: hidden; }
+.theme-toggle .pol-badge { transition: opacity .5s ease .1s; }
+.penta.is-intro ~ .top-right .pol-badge { opacity: 0; }
+
+/* ---------- 처음 들어오면: 프로젝트 소개 (그리는 순서·자리는 js/penta.js) ---------- */
+.intro {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  background: var(--bg);
+  color: var(--fg);
+  cursor: pointer;
+  transition: background-color .6s ease;
+}
+.intro.is-leaving { background-color: transparent; pointer-events: none; }
+.intro-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.intro-vowel { fill: none; stroke: currentColor; } /* 음양 버튼으로 날아가는 · 와 ㅣ */
+
+/* 천·지·인: 점은 톡 나타나고, ㅡ·ㅣ 는 붓으로 긋듯 그어짐 */
+.intro-trio line {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: intro-draw .5s cubic-bezier(.65, 0, .35, 1) var(--d) forwards;
+}
+.intro-trio circle {
+  fill: currentColor;
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: scale(0);
+  animation: intro-pop .45s var(--ease-spring) var(--d) forwards;
+}
+.intro-cap {
+  fill: var(--muted);
+  font-weight: 600;
+  text-anchor: middle;
+  dominant-baseline: hanging;
+  opacity: 0;
+  animation: intro-fade .5s ease var(--d) forwards;
+}
+/* 다섯 기본 자음: 하나씩 살짝 떠오르며 써짐 (1 = 글자 높이) */
+.intro-letter-in {
+  fill: currentColor;
+  opacity: 0;
+  transform: translateY(.25px);
+  animation: intro-rise .6s cubic-bezier(.22, 1, .36, 1) var(--d) forwards;
+}
+
+.intro-text {
+  position: absolute;
+  left: 50%;
+  top: var(--intro-text-top, 55%);
+  transform: translateX(-50%);
+  width: min(640px, calc(100% - 32px));
+  text-align: center;
+}
+.intro-text > * {
+  margin: 0;
+  opacity: 0;
+  animation: intro-rise .6s cubic-bezier(.22, 1, .36, 1) var(--d) forwards;
+}
+.intro-title {
+  font-size: max(26px, min(2.083vw, 3.704vh));
+  font-weight: 700;
+  letter-spacing: -.03em;
+  line-height: 1.25;
+}
+.intro-desc {
+  font-size: max(15px, min(.938vw, 1.667vh));
+  line-height: 1.6;
+  color: var(--soft);
+}
+.intro-title + .intro-desc { margin-top: max(12px, min(.625vw, 1.111vh)); }
+.intro-hint {
+  display: inline-block;
+  margin-top: max(24px, min(1.667vw, 2.963vh));
+  padding: 8px 12px;
+  border: 0;
+  background: none;
+  font-size: max(13px, min(.729vw, 1.296vh));
+  font-weight: 600;
+  letter-spacing: .04em;
+  color: var(--muted);
+  cursor: pointer;
+  animation:
+    intro-rise .6s cubic-bezier(.22, 1, .36, 1) var(--d) forwards,
+    intro-breathe 2.4s ease-in-out calc(var(--d) + .6s) infinite;
+}
+.intro-hint:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+
+/* 떠날 때: 천·지·인과 글은 사라지고, 다섯 자음만 원판으로 날아감 */
+.intro-trio, .intro-text { transition: opacity .4s ease; }
+.intro.is-leaving .intro-trio,
+.intro.is-leaving .intro-text { opacity: 0; }
+.intro.is-leaving .intro-letter-in { animation: none; opacity: 1; transform: none; } /* 아직 안 써진 글자도 함께 */
+
+@keyframes intro-draw { to { stroke-dashoffset: 0; } }
+@keyframes intro-pop { to { transform: scale(1); } }
+@keyframes intro-fade { to { opacity: 1; } }
+@keyframes intro-rise { to { opacity: 1; transform: none; } }
+@keyframes intro-breathe { 50% { opacity: .45; } }
+
+/* ---------- 원판 화면 아래 가운데: About project · Share · Language ---------- */
+.main-links {
+  position: fixed;
+  left: 50%;
+  bottom: max(8px, min(.521vw, .926vh)); /* 화면 아래 끝 가까이 (1920×1080 에서 10px) */
+  z-index: 3;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column; /* 윗줄 About project, 아랫줄 Share · Language */
+  align-items: center;
+  gap: 0;
+  white-space: nowrap;
+  transition: opacity .45s ease, visibility .45s;
+}
+.main-row { display: flex; align-items: center; margin-top: -10px; } /* About project 줄과 행간을 붙임 (버튼 위아래 여백이 겹치게) */
+
+/* Share 를 누르면 버튼 위에 뜨는 작은 검은 창 (밝은·어두운 화면 모두 검정) */
+.share-wrap { position: relative; }
+.share-menu {
+  position: absolute;
+  bottom: 0; /* 창 아래 끝 = Share 버튼 아래 끝 → 열리면 Share 글자를 덮음 */
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 108px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  background: var(--black);
+  box-shadow: 0 6px 24px rgb(0 0 0 / .18);
+  animation: share-in .2s cubic-bezier(.22, 1, .36, 1);
+}
+.share-menu[hidden] { display: none; }
+:root[data-theme="dark"] .share-menu { box-shadow: 0 0 0 1px rgb(255 255 255 / .14); } /* 검은 바탕 위에서도 테두리가 보이게 */
+@keyframes share-in { from { opacity: 0; transform: translate(-50%, 4px); } }
+.share-menu [role="menuitem"],
+.share-menu [role="menuitemradio"] {
+  display: block;
+  width: 100%;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  font-size: max(12px, min(.677vw, 1.204vh));
+  font-weight: 600;
+  letter-spacing: .02em;
+  text-align: left;
+  text-decoration: none;
+  color: rgb(255 255 255 / .72);
+  cursor: pointer;
+}
+.share-menu [role="menuitem"]:hover,
+.share-menu [role="menuitem"]:focus-visible,
+.share-menu [role="menuitemradio"]:hover,
+.share-menu [role="menuitemradio"]:focus-visible { color: #fff; background: rgb(255 255 255 / .1); outline: none; }
+.share-menu [role="menuitemradio"][aria-checked="true"] { color: #fff; } /* 지금 고른 말은 진하게 */
+/* 원판 화면에서만. 소개가 떠 있거나 글자가 날아가는 동안은 숨김 */
+body:not([data-view="penta"]) .main-links,
+.penta.is-intro ~ .main-links,
+.penta.is-dim ~ .main-links { opacity: 0; visibility: hidden; pointer-events: none; }
+.main-link {
+  padding: 8px max(10px, min(.625vw, 1.111vh));
+  border: 0;
+  background: none;
+  font-size: max(13px, min(.729vw, 1.296vh));
+  font-weight: 600;
+  letter-spacing: .04em;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color .2s;
+}
+.main-sep { color: var(--muted); font-weight: 600; }
+.main-link:hover,
+.main-link:focus-visible { color: var(--fg); }
+.main-link:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; border-radius: 4px; }
+
+/* ---------- About project 창 ---------- */
+.about {
+  width: min(max(560px, min(83.333vw, 148.148vh)), calc(100% - 32px)); /* 1920×1080 에서 1600px */
+  max-height: calc(100% - 32px);
+  padding: max(28px, min(2.083vw, 3.704vh));
+  border: 0;
+  background: none; /* 상자 없이: 어두워진 화면 위에 글씨만 */
+  color: #fff;      /* 밝은·어두운 화면 모두 어두운 바탕 위라 흰 글씨 */
+  line-height: 1.6;
+  cursor: pointer; /* 어디를 눌러도 닫힘 */
+  user-select: text;
+  -webkit-user-select: text;
+  outline: none;
+  /* 스크롤바: 어두운 바탕에 어울리는 가는 반투명 흰 막대, 바탕(트랙)은 비움 */
+  scrollbar-width: thin;
+  scrollbar-color: rgb(255 255 255 / .22) transparent;
+}
+.about:hover { scrollbar-color: rgb(255 255 255 / .4) transparent; }
+/* scrollbar-color 를 모르는 브라우저(옛 크롬·사파리)용 */
+.about::-webkit-scrollbar { width: 6px; }
+.about::-webkit-scrollbar-track { background: transparent; }
+.about::-webkit-scrollbar-thumb { background: rgb(255 255 255 / .22); border-radius: 3px; }
+.about::-webkit-scrollbar-thumb:hover { background: rgb(255 255 255 / .4); }
+.about::-webkit-scrollbar-button { display: none; height: 0; }
+/* 뒤 화면은 많이 어둡게 (원판 글자·설명이 소개 글씨와 겹쳐 읽히지 않도록) */
+.about::backdrop { background: rgb(0 0 0 / .86); }
+.about[open]::backdrop { animation: about-dim .4s ease; }
+@keyframes about-dim { from { opacity: 0; } }
+/* 닫힐 때: 글씨는 살짝 내려가며, 바탕은 함께 스르르 사라짐 (js 가 .is-closing 을 붙이고 0.26초 뒤 닫음) */
+.about.is-closing { animation: about-out .26s ease forwards; }
+.about.is-closing::backdrop { animation: about-undim .26s ease forwards; }
+@keyframes about-out { to { opacity: 0; transform: translateY(6px); } }
+@keyframes about-undim { to { opacity: 0; } }
+.about p, .about ul, .about figure { margin: 0; }
+/* 왼쪽 그림 | 오른쪽 글. 좁은 화면에서는 그림이 위로 */
+.about[open] {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); /* 그림 칸을 조금 더 넓게 */
+  gap: max(32px, min(4.167vw, 7.407vh));
+  align-items: center;
+}
+@media (max-width: 860px) {
+  .about[open] { grid-template-columns: minmax(0, 1fr); }
+  .about-fig { max-width: 380px; margin: 0 auto !important; }
+}
+
+/* ---------- 왼쪽 그림: 자음 = 오행, 모음 = 음양 ---------- */
+/* 자음마다 한자·소리 자리 이름은 한 덩이로 가운데 맞춤, 동그라미에서 덩이까지 틈은 모두 같게(6) — 위(ㄱ)·옆(ㄴ ㅇ)·아래(ㅁ ㅅ) */
+.about-fig svg { display: block; width: 100%; height: auto; overflow: visible; }
+.about-fig text { text-anchor: middle; dominant-baseline: central; fill: #fff; font-family: var(--font); }
+.fig-ring { fill: none; stroke: rgb(255 255 255 / .35); stroke-width: 1; }
+.fig-arrows path { fill: none; stroke: rgb(255 255 255 / .6); stroke-width: 1.3; }
+.fig-pop circle { fill: #fff; }
+.about-fig .fig-letter { fill: #111; font-size: 20px; font-weight: 700; }
+.about-fig .fig-el { font-size: 11px; font-weight: 600; }
+.about-fig .fig-organ { font-size: 7.5px; font-weight: 600; fill: rgb(255 255 255 / .6); }
+.fig-core-ring { fill: none; stroke: rgb(255 255 255 / .35); stroke-width: 1; stroke-dasharray: 2 3; }
+.about-fig .fig-core-name { font-size: 7.5px; font-weight: 700; fill: rgb(255 255 255 / .75); }
+.about-fig .fig-core-cap { font-size: 5px; font-weight: 600; fill: rgb(255 255 255 / .55); }
+/* 옆 자음(ㄴ 오른쪽, ㅇ 왼쪽): 한자·이름을 동그라미 쪽 끝에 맞춤 → 글이 길어져도(영어) 동그라미를 덮지 않음 */
+.about-fig .fig-side-r { text-anchor: start; }
+.about-fig .fig-side-l { text-anchor: end; }
+/* 영어: Sky · Earth · Human 이 서로 붙지 않게 조금 작게 */
+:root[lang="en"] .about-fig .fig-core-cap { font-size: 4px; }
+/* 천·지·인 */
+.fig-trio circle { fill: #fff; }
+.fig-trio line { stroke: #fff; stroke-width: 2.6; stroke-linecap: butt; }
+.fig-core-div { stroke: rgb(255 255 255 / .3); stroke-width: .6; stroke-dasharray: 1.5 2; }
+/* 음양 모음: 긴 획은 옅게, 점(짧은 획 + 끝 점)은 진하게 → 점이 어느 쪽에 붙었는지가 보임 */
+.fig-yy line { stroke-width: 2.2; stroke-linecap: butt; }
+.fig-yy .fig-long { stroke: rgb(255 255 255 / .45); }
+.fig-yy .fig-short { stroke: #fff; }
+.fig-yy circle { fill: #fff; }
+.about-fig .fig-yy-name { font-size: 7px; font-weight: 700; }
+.about-fig .fig-yy-cap { font-size: 4.6px; font-weight: 600; fill: rgb(255 255 255 / .55); }
+
+/* 그림이 나타나는 차례: 둥근 길이 그어지고(원판을 돌리듯) → 다섯 자음이 상생 차례로 톡톡 →
+   가운데 천·지·인이 점, 가로, 세로 순으로 그어지고 → 음양 모음의 점이 붙음 → 설명 */
+.about[open] .fig-ring { stroke-dasharray: 1; animation: fig-draw 1s cubic-bezier(.65, 0, .35, 1) .1s both; }
+@keyframes fig-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+.about[open] .fig-pop {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: fig-pop .5s var(--ease-spring) both;
+  animation-delay: calc(250ms + var(--n) * 180ms);
+}
+@keyframes fig-pop { from { opacity: 0; transform: scale(.3); } }
+.about[open] .fig-node > text { animation: fig-fade .5s ease both; animation-delay: calc(400ms + var(--n) * 180ms); }
+.about[open] .fig-arrows { animation: fig-fade .5s ease 1.1s both; }
+@keyframes fig-fade { from { opacity: 0; } }
+.about[open] .fig-core-ring,
+.about[open] .fig-core-name { animation: fig-fade .6s ease 1.2s both; }
+.about[open] .fig-trio circle {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: fig-pop .4s var(--ease-spring) 1.35s both;
+}
+.about[open] .fig-trio line { stroke-dasharray: 13; animation: fig-stroke .35s cubic-bezier(.65, 0, .35, 1) both; }
+.about[open] .fig-trio line:nth-of-type(1) { animation-delay: 1.5s; }
+.about[open] .fig-trio line:nth-of-type(2) { animation-delay: 1.7s; }
+@keyframes fig-stroke { from { stroke-dashoffset: 13; } to { stroke-dashoffset: 0; } }
+.about[open] .fig-core-cap,
+.about[open] .fig-core-div,
+.about[open] .fig-yy .fig-long { animation: fig-fade .5s ease 1.9s both; }
+/* 점: 짧은 획이 긴 획에서 뻗어 나가고, 끝에 점이 톡 (음양 버튼의 모음과 같은 움직임) */
+.about[open] .fig-yy .fig-short { stroke-dasharray: 10; animation: fig-short .4s cubic-bezier(.65, 0, .35, 1) 2.1s both; }
+@keyframes fig-short { from { stroke-dashoffset: 10; } to { stroke-dashoffset: 0; } }
+.about[open] .fig-yy circle {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: fig-pop .4s var(--ease-spring) 2.4s both;
+}
+.about[open] .fig-yy-name,
+.about[open] .fig-yy-cap { animation: fig-fade .5s ease 2.5s both; }
+
+/* 오른쪽 제목: 획 긋기 — 글자마다 윤곽선이 붓으로 쓰듯 그어지고, 이어서 안쪽이 먹처럼 차오름 (js/links.js 가 SVG 로 만듦) */
+.about-title svg { display: block; max-width: 100%; height: auto; overflow: visible; }
+.title-ch {
+  font-family: var(--font);
+  font-weight: 800;
+  fill: #fff;
+  stroke: #fff;
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+}
+.about[open] .title-ch {
+  stroke-dasharray: 3000;
+  animation:
+    title-stroke 1.4s cubic-bezier(.45, 0, .25, 1) both,
+    title-ink .6s ease both;
+  animation-delay:
+    calc(150ms + var(--i) * 110ms),
+    calc(850ms + var(--i) * 110ms);
+}
+@keyframes title-stroke { from { stroke-dashoffset: 3000; } to { stroke-dashoffset: 0; } }
+@keyframes title-ink { from { fill: rgb(255 255 255 / 0); } to { fill: #fff; } }
+/* ③ 나머지 글은 한 덩이씩 붓으로 긋듯 왼쪽부터 드러남 */
+.about[open] .about-wipe {
+  animation: about-wipe .7s cubic-bezier(.65, 0, .35, 1) both;
+  animation-delay: calc(var(--title-ms, 600ms) + var(--i) * 140ms);
+}
+@keyframes about-wipe {
+  from { clip-path: inset(0 100% 0 0); opacity: .3; transform: translateX(-6px); }
+  to { clip-path: inset(0 0 0 0); opacity: 1; transform: none; }
+}
+.about-title {
+  margin: 0 0 max(20px, min(1.667vw, 2.963vh));
+  font-size: max(40px, min(3.75vw, 6.667vh)); /* 1920×1080 에서 72px (오른쪽 칸에 한 줄로) */
+  font-weight: 800;
+  letter-spacing: -.04em;
+  line-height: 1.12;
+}
+/* 맨 아래 저작권 */
+.about-body > p.about-copy {
+  margin-top: max(28px, min(2.083vw, 3.704vh));
+  font-size: max(12px, min(.729vw, 1.296vh));
+  letter-spacing: .02em;
+  color: rgb(255 255 255 / .45);
+}
+.about-body > p:not(.about-copy) { font-size: max(17px, min(1.146vw, 2.037vh)); line-height: 1.7; color: rgb(255 255 255 / .86); }
+.about-list {
+  margin-top: 26px !important;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 16px;
+  font-size: max(16px, min(1.042vw, 1.852vh));
+  color: rgb(255 255 255 / .78);
+}
+.about-list b { display: block; color: #fff; font-weight: 700; }
 
 /* 칸의 ㄱ 이 나무 뿌리 자리로 날아가는 동안 쓰는 층 */
 .flight {
@@ -246,38 +623,67 @@ body[data-view="tree"] .penta { visibility: hidden; }
   color: var(--fg);
 }
 
-/* ---------- 나무 화면: 왼쪽 위 오각형 버튼 ---------- */
-/* 두 버튼 크기·자리는 맨 위 :root 의 --nav-size, --edge (화면 비율 유지) */
-.to-penta {
-  position: fixed;
-  top: var(--edge);
-  left: var(--edge);
-  z-index: 4;
-  display: none;
-  width: var(--nav-size);
-  height: var(--nav-size);
-  padding: calc(var(--nav-size) * .2);
-  border: 0;
+/* ---------- 나무·연못 화면: 왼쪽 위에 동그라미 버튼 두 개 나란히 (왼쪽: 돌아가기 ←, 오른쪽: 저장) ---------- */
+/* 크기 --side-btn (1920×1080 에서 60px), 두 버튼 사이 --side-gap */
+:root {
+  --side-btn: max(48px, min(3.125vw, 5.556vh));
+  --side-gap: max(10px, min(.625vw, 1.111vh));
+}
+.to-penta,
+.tool-btn {
+  width: var(--side-btn);
+  height: var(--side-btn);
+  padding: calc(var(--side-btn) * .27);
+  border: 1.5px solid currentColor;
   border-radius: 50%;
-  background: none;
+  background: var(--bg); /* 뒤의 나무·물결 위에서도 또렷하게 */
   color: var(--fg);
   opacity: .8;
   cursor: pointer;
-  transition: opacity .2s;
+  transition: opacity .2s, background-color .6s ease, color .6s ease;
 }
-.to-penta svg { display: block; width: 100%; height: 100%; }
-.to-penta:hover,
-.to-penta:focus-visible { opacity: 1; }
-.to-penta:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
-body[data-view="tree"] .to-penta { display: block; }
+.to-penta svg,
+.tool-btn svg { display: block; width: 100%; height: 100%; }
+.to-penta:hover, .to-penta:focus-visible,
+.tool-btn:hover, .tool-btn:focus-visible { opacity: 1; }
+.to-penta:focus-visible,
+.tool-btn:focus-visible { outline: 2px solid var(--fg); outline-offset: 3px; }
 
-/* ---------- 오른쪽 위: 음양 버튼 (밝은 화면 ㅏ 양 ↔ 어두운 화면 ㅓ 음) ---------- */
-/* 기둥(ㅣ = 사람)은 그대로, 점(· = 하늘)이 기둥 바깥(동쪽, 해 뜨는 쪽)에서 안쪽(서쪽)으로 건너감 */
-.theme-toggle {
+.to-penta {
   position: fixed;
-  top: var(--edge);
-  right: var(--edge);
+  left: var(--edge);
+  top: var(--edge); /* 왼쪽 위 */
   z-index: 4;
+  display: none;
+}
+body:not([data-view="penta"]) .to-penta { display: block; }
+
+/* ---------- 오른쪽 위 한 줄: [저장] [음양] ---------- */
+/* 음양 버튼 폭(양/음 글자)이 바뀌어도 저장 버튼이 바로 왼쪽에 붙어 따라감 */
+.top-right {
+  position: fixed;
+  /* 음양 버튼(--nav-size)이 왼쪽 위 동그라미 버튼(--side-btn)보다 커서, 가운데 높이를 맞추려고 그 차이의 절반만큼 올림 */
+  top: calc(var(--edge) - (var(--nav-size) - var(--side-btn)) / 2 - max(4px, min(.26vw, .463vh))); /* 눈으로 보기에 맞도록 조금 더 (1920×1080 에서 5px) */
+  /* 음양 글자(ㅏ)의 오른쪽 끝이 화면 끝에서 --edge 만큼 떨어지게: 글자 칸 안의 빈 여백(패딩 .2 + 그림 안 여백 .0925)만큼 밖으로 뺌 */
+  right: calc(var(--edge) - var(--nav-size) * .2925);
+  z-index: 4;
+  display: flex;
+  align-items: center;
+}
+
+/* 저장 버튼: 돌아가기 버튼 바로 오른쪽 (모양은 위 .tool-btn). 나무·연못 화면에서만 보임.
+   마크업은 오른쪽 위 줄 안에 있지만 화면에 고정해서 왼쪽 위로 뺌 */
+.tree-tools {
+  position: fixed;
+  left: calc(var(--edge) + var(--side-btn) + var(--side-gap)); /* 돌아가기 버튼 바로 오른쪽 */
+  top: var(--edge);
+  z-index: 4;
+  display: none;
+}
+body:not([data-view="penta"]) .tree-tools { display: flex; }
+
+/* ---------- 오른쪽 위: 음양 버튼 (ㅏ ㅗ 양 = 밝은 화면, ㅓ ㅜ 음 = 어두운 화면) ---------- */
+.theme-toggle {
   display: flex;
   align-items: center;
   height: var(--nav-size);
@@ -295,9 +701,45 @@ body[data-view="tree"] .to-penta { display: block; }
   height: var(--nav-size);
   padding: calc(var(--nav-size) * .2);
 }
+/* 기둥 둘레 네 방향에 점. 누를 때마다 ㅏ → ㅓ → ㅗ → ㅜ 차례로 한 점이 켜져 획이 됨
+   (좌우 한 쌍, 그다음 상하 한 쌍 번갈아). 위·오른쪽은 양(밝은 화면), 아래·왼쪽은 음(어두운 화면).
+   켜진 글자는 js/theme.js 가 버튼의 data-v 로 정함 (0 ㅏ, 1 ㅓ, 2 ㅗ, 3 ㅜ) */
 .yy-glyph svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.yy-glyph line { fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; }
+.yy-glyph circle { fill: currentColor; }
+/* 기둥: ㅏ·ㅓ 에서는 ㅣ, ㅗ·ㅜ 에서는 눕혀 ㅡ */
+.yy-bar {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform .45s cubic-bezier(.65, 0, .35, 1) .15s;
+}
+.theme-toggle[data-v="2"] .yy-bar,
+.theme-toggle[data-v="3"] .yy-bar { transform: rotate(90deg); }
+/* 꺼질 때: 획이 점으로 줄어든 뒤 점이 옅어짐.
+   (획의 선은 점 자리에서 기둥 쪽으로 그려 둠 → 드러나는 길이만큼 점이 기둥 쪽으로 늘어난 모양) */
+.yy-mark line {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset .3s ease-in;
+}
+.yy-mark circle { opacity: .28; transition: opacity .25s ease .3s; }
+/* 켜질 때: 점이 먼저 켜지고(기둥이 도는 동안), 그 점이 기둥 쪽으로 늘어나 획이 됨 */
+.theme-toggle[data-v="0"] .yy-mark[data-dir="r"] circle,
+.theme-toggle[data-v="1"] .yy-mark[data-dir="l"] circle,
+.theme-toggle[data-v="2"] .yy-mark[data-dir="u"] circle,
+.theme-toggle[data-v="3"] .yy-mark[data-dir="d"] circle {
+  opacity: 1;
+  transition: opacity .2s ease .3s;
+}
+.theme-toggle[data-v="0"] .yy-mark[data-dir="r"] line,
+.theme-toggle[data-v="1"] .yy-mark[data-dir="l"] line,
+.theme-toggle[data-v="2"] .yy-mark[data-dir="u"] line,
+.theme-toggle[data-v="3"] .yy-mark[data-dir="d"] line {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset .4s cubic-bezier(.65, 0, .35, 1) .65s;
+}
 
-/* 음양 표시: 해(양) ↔ 달(음) 아이콘 + 이름 (모음 페이지 오른쪽 위와 같은 모양) */
+/* 음양 표시: 해(양) ↔ 달(음) 아이콘 + 이름 */
 .theme-toggle .pol-badge {
   display: inline-flex;
   align-items: center;
@@ -326,9 +768,3 @@ body[data-view="tree"] .to-penta { display: block; }
 .theme-toggle:hover,
 .theme-toggle:focus-visible { opacity: 1; }
 .theme-toggle:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
-.theme-toggle .yy-dot {
-  transform: translateX(0);
-  transition: transform .6s cubic-bezier(.65, 0, .35, 1);
-}
-:root[data-theme="dark"] .theme-toggle .yy-dot { transform: translateX(-12px); } /* ㅏ → ㅓ */
-.penta.is-dim ~ .theme-toggle { opacity: 0; pointer-events: none; } /* ㄱ 이 나무로 날아가는 동안 */
