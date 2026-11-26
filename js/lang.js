@@ -12,7 +12,7 @@
     ['.side-info[data-scene="tree"] .el-name', '<span class="el-hanja">木</span>Wood'],
     ['.side-info[data-scene="tree"] .el-sense', 'Growth · Reaching out'],
     ['.side-info[data-scene="pond"] .el-name', '<span class="el-hanja">水</span>Water'],
-    ['.side-info[data-scene="pond"] .el-sense', 'Flow · Passage'],
+    ['.side-info[data-scene="pond"] .el-sense', 'Flow · Condensing'],
     ['.rule[data-rule="가획"] .rule-name', 'Adding strokes'],
     ['.rule[data-rule="병서"] .rule-name', 'Doubling'],
     ['.rule[data-rule="통함"] .rule-name', 'Passage'],
@@ -42,7 +42,7 @@
       'Spreading · Blazing',
       'Gathering · Embracing',
       'Firmness · Sharpness',
-      'Flow · Passage',
+      'Flow · Condensing',
     ]],
     ['.element .el-meta', [
       'Shaped after the root of the tongue · ㄱ → ㅋ',

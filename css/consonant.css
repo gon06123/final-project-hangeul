@@ -177,13 +177,15 @@ body:not([data-view="penta"]) .penta { visibility: hidden; transition: visibilit
 .cell.is-open.is-top .mark { cursor: pointer; } /* 눌러서 열리는 곳은 글자뿐 */
 
 /* 원판 글자: Pretendard SemiBold (크기·자리는 js/penta.js 의 fitLetters) */
+/* 맨 위(가운데)에 온 칸만 진하게, 나머지는 회색 → 돌리면 고른 글자가 바뀌는 게 보임 */
 .letter {
-  fill: currentColor;
+  fill: var(--muted);
   stroke: none;
   transform-box: fill-box;
   transform-origin: center;
-  transition: transform .45s cubic-bezier(.22, 1, .36, 1);
+  transition: transform .45s cubic-bezier(.22, 1, .36, 1), fill .3s ease;
 }
+.cell.is-top .letter { fill: currentColor; }
 /* 글자에 마우스를 올리면(또는 키보드로 고른 위 칸) 살짝 커짐 */
 .penta:not(.is-dragging) .mark:hover .letter,
 .penta-svg:focus-visible .cell.is-top .letter { transform: scale(1.12); }
@@ -191,7 +193,6 @@ body:not([data-view="penta"]) .penta { visibility: hidden; transition: visibilit
    글자 뒤 동그란 바탕(.cell-dot)이 누르는 자리가 됨 */
 .penta-svg .glyph { pointer-events: none; }
 .glyph-ref { fill: none; visibility: hidden; } /* 날아갈 ㄱ 의 자리만 재는 보이지 않는 ㄱ */
-.cell.is-locked .letter { opacity: .25; } /* 아직 비어 있는 칸 */
 .cell.is-flying .letter { visibility: hidden; }
 
 /* ---------- 맨 위 칸 글자 아래: 오행 설명 ---------- */
@@ -768,3 +769,69 @@ body:not([data-view="penta"]) .tree-tools { display: flex; }
 .theme-toggle:hover,
 .theme-toggle:focus-visible { opacity: 1; }
 .theme-toggle:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+
+/* ---------- 저장한 그림 창 (js/saved.js): 어두운 바탕 위에 그림 + 공유·PNG 버튼 ---------- */
+.saved {
+  max-width: calc(100% - 32px);
+  max-height: calc(100% - 32px);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #fff;
+  outline: none;
+  overflow: visible;
+}
+.saved::backdrop { background: rgb(0 0 0 / .82); }
+.saved[open] { animation: saved-in .32s cubic-bezier(.22, 1, .36, 1); }
+.saved[open]::backdrop { animation: about-dim .3s ease; }
+.saved.is-closing { animation: about-out .22s ease forwards; }
+.saved.is-closing::backdrop { animation: about-undim .22s ease forwards; }
+@keyframes saved-in { from { opacity: 0; transform: translateY(10px) scale(.98); } }
+.saved-box { position: relative; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.saved-img {
+  display: block;
+  max-width: min(880px, calc(100vw - 32px));
+  max-height: calc(100vh - 180px);
+  width: auto;
+  height: auto;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / .14), 0 12px 40px rgb(0 0 0 / .4);
+}
+.saved-note { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: .02em; color: rgb(255 255 255 / .6); text-align: center; word-break: break-all; }
+.saved-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.saved-btn {
+  min-width: 112px;
+  padding: 10px 18px;
+  border: 1px solid rgb(255 255 255 / .32);
+  border-radius: 0;
+  background: none;
+  font: 600 14px/1.2 var(--font);
+  letter-spacing: .02em;
+  color: #fff;
+  cursor: pointer;
+  transition: background .2s, border-color .2s;
+}
+.saved-btn:hover { background: rgb(255 255 255 / .1); border-color: rgb(255 255 255 / .6); }
+.saved-btn.is-main { background: #fff; border-color: #fff; color: var(--black); }
+.saved-btn.is-main:hover { background: rgb(255 255 255 / .86); }
+.saved-btn:focus-visible, .saved-close:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+/* 닫기 ×: 그림 오른쪽 위 바깥 (좁은 화면에서는 그림 위 안쪽) */
+.saved-close {
+  position: absolute;
+  top: -40px;
+  right: 0;
+  width: 32px;
+  height: 32px;
+  padding: 6px;
+  border: 0;
+  background: none;
+  color: rgb(255 255 255 / .72);
+  cursor: pointer;
+}
+.saved-close:hover { color: #fff; }
+.saved-close svg { display: block; width: 100%; height: 100%; }
+@media (max-height: 600px), (max-width: 600px) {
+  .saved-close { top: 6px; right: 6px; background: rgb(0 0 0 / .5); border-radius: 50%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .saved[open], .saved[open]::backdrop, .saved.is-closing, .saved.is-closing::backdrop { animation: none; }
+}

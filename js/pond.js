@@ -1139,19 +1139,8 @@
 
   document.getElementById('save-svg')?.addEventListener('click', () => {
     if (!pondOn()) return;
-    const svg = pondSVG(performance.now());
-    const d = new Date();
-    const p2 = (v) => String(v).padStart(2, '0');
-    const stamp = `${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}-${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}`;
-    const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `ㅇ연못-${stamp}.svg`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-    live.textContent = '지금 연못을 SVG 파일로 저장했습니다.';
+    // 내려받고 + 저장한 그림을 창에 띄워 바로 공유 (js/saved.js)
+    window.saveImage(pondSVG(performance.now()), 'ㅇ연못', document.documentElement.lang === 'en' ? 'Pond of ㅇ' : 'ㅇ 연못');
   });
 
   /* ---------- 원판(js/penta.js)과 주고받는 것 ---------- */

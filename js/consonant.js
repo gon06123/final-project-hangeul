@@ -868,19 +868,8 @@
 
   document.getElementById('save-svg')?.addEventListener('click', () => {
     if (!treeOn()) return; // 연못 화면이면 js/pond.js 가 저장
-    const svg = treeSVG(performance.now());
-    const d = new Date();
-    const p2 = (v) => String(v).padStart(2, '0');
-    const stamp = `${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}-${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}`;
-    const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `ㄱ나무-${stamp}.svg`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-    live.textContent = '지금 나무를 SVG 파일로 저장했습니다.';
+    // 내려받고 + 저장한 그림을 창에 띄워 바로 공유 (js/saved.js)
+    window.saveImage(treeSVG(performance.now()), 'ㄱ나무', document.documentElement.lang === 'en' ? 'Tree of ㄱ' : 'ㄱ 나무');
   });
 
   /* ---------- 매 프레임 ---------- */

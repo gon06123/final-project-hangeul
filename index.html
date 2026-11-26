@@ -55,7 +55,7 @@
   <div class="side-info" data-scene="pond">
   <div class="tree-element" aria-label="ㅇ 의 오행">
     <p class="el-name"><span class="el-hanja">水</span>물 수</p>
-    <p class="el-sense">흐름 · 통함</p>
+    <p class="el-sense">흐름 · 응축</p>
   </div>
 
   <aside class="rules" id="pond-rules" aria-label="ㅇ 에서 글자를 만드는 두 원리">
@@ -113,7 +113,7 @@
       <article class="element" data-k="4">
         <p class="el-eyebrow">음양오행 陰陽五行</p>
         <p class="el-name"><span class="el-hanja">水</span>물 수</p>
-        <p class="el-sense">흐름 · 통함</p>
+        <p class="el-sense">흐름 · 응축</p>
         <p class="el-meta">목구멍을 본뜸 · ㅇ → ㆆ → ㅎ</p>
       </article>
     </div>
@@ -285,6 +285,20 @@
   </button>
   </div>
 
+  <!-- 저장 버튼을 누르면: 저장한 그림을 띄우고 바로 공유 (js/saved.js). 글자는 js 가 말에 맞춰 채움 -->
+  <dialog class="saved" id="saved" aria-label="저장한 그림">
+    <div class="saved-box">
+      <button class="saved-close" type="button" aria-label="닫기">
+        <svg viewBox="-12 -12 24 24" aria-hidden="true"><path d="M-7 -7 L7 7 M7 -7 L-7 7" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+      </button>
+      <img class="saved-img" id="saved-img" alt="">
+      <p class="saved-note"></p>
+      <div class="saved-actions">
+        <button class="saved-btn is-main" type="button" data-act="share" data-t="share">공유하기</button>        <button class="saved-btn" type="button" data-act="png" data-t="png">PNG 저장</button>
+      </div>
+    </div>
+  </dialog>
+
   <p class="sr-only" id="live" aria-live="polite"></p>
 
   <script src="js/consonant.js"></script>
@@ -292,6 +306,7 @@
   <script src="js/penta.js"></script>
   <script src="js/theme.js"></script>
   <script src="js/links.js"></script>
+  <script src="js/saved.js"></script>
   <script src="js/lang.js"></script>
 </body>
 </html>

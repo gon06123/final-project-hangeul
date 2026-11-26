@@ -76,11 +76,29 @@
       el.style.setProperty('--i', i);
     });
 
+    // 그림의 옆 자음(ㄴ 오른쪽, ㅇ 왼쪽): 한자·이름 덩이의 동그라미 쪽 끝은 그대로 두고, 두 줄을 덩이 안에서 가운데 맞춤
+    // (위·아래 자음처럼). 글 너비를 재야 해서 창이 보일 때 부름 — 말이 바뀌어도 다시 열 때 새로 맞춤
+    function alignSides() {
+      about.querySelectorAll('.fig-node').forEach((node) => {
+        const texts = [...node.querySelectorAll('.fig-side-r, .fig-side-l')];
+        if (!texts.length) return;
+        const dir = texts[0].classList.contains('fig-side-r') ? 1 : -1;
+        const w = Math.max(...texts.map((t) => t.getComputedTextLength()));
+        if (!w) return; // 못 쟀으면 CSS 의 끝 맞춤 그대로
+        texts.forEach((t) => {
+          t.setAttribute('x', dir * (24 + w / 2));
+          t.style.textAnchor = 'middle';
+        });
+      });
+    }
+
     openBtn.addEventListener('click', () => {
       about.classList.remove('is-closing');
       if (typeof about.showModal === 'function') about.showModal();
       else about.setAttribute('open', '');
       buildTitle(); // 보이는 상태에서 글자 자리를 재야 해서 연 직후 (처음 한 번만)
+      alignSides();
+      if (document.fonts) document.fonts.ready.then(() => { if (about.open) alignSides(); });
     });
     // 닫기: 화면 어디를 눌러도, 또는 Esc. 스르르 사라진 뒤 닫힘
     let closing = 0;
