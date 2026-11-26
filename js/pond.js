@@ -154,14 +154,35 @@
   const CIRCLE = (type) => SHAPE['ㅇ'].r / SHAPE[type === 'ㆅ' ? 'ㅎ' : type].r;
 
   // 누르고 있는 동안의 크기 (보통 글자 크기의 배, 글자 전체). 부풂·뭉침은 동그라미 크기 기준
+  // 풍선 터지듯: 획이 붙기 직전 팽팽하게 떨며 조금 더 부풀었다가 → 한순간(POP)에 확 쪼그라들고(POP_MIN)
+  // → 용수철처럼 출렁이며 CORE 크기로 자리 잡음
+  const POP = 90, POP_MIN = 0.32, TENSE = 240;
   function holdScale(g, now) {
     const st = holdStage(g, now);
     const t = now - g.t0 - STAGE_AT[st];
-    if (st === 0) return lerp(SWELL_MIN, SWELL_MAX, smooth(clamp01(t / GROW)));
-    const f = CIRCLE(STAGES[st]), fp = CIRCLE(STAGES[st - 1]);
-    // 획이 붙는 순간 단단히 뭉쳤다가(조금 더 작게 조였다 살짝 되튐), 다시 부풂
-    if (t < SQUEEZE) return lerp(SWELL_MAX * fp, CORE * f, easeOutBack(t / SQUEEZE));
-    return lerp(CORE * f, SWELL_MAX * f, smooth(clamp01((t - SQUEEZE) / GROW)));
+    let s;
+    if (st === 0) s = lerp(SWELL_MIN, SWELL_MAX, smooth(clamp01(t / GROW)));
+    else {
+      const f = CIRCLE(STAGES[st]), fp = CIRCLE(STAGES[st - 1]);
+      if (t < POP) {
+        // 터짐: 점점 빨라지며 확 작아짐
+        const k = t / POP;
+        return lerp(SWELL_MAX * fp * 1.08, POP_MIN * f, k * k * k);
+      }
+      if (t < SQUEEZE) {
+        // 되튐: 작게 쪼그라든 데서 출렁이며 CORE 로
+        const tau = (t - POP) / 1000;
+        return f * (CORE + (POP_MIN - CORE) * Math.exp(-9 * tau) * Math.cos(30 * tau));
+      }
+      s = lerp(CORE * f, SWELL_MAX * f, smooth(clamp01((t - SQUEEZE) / GROW)));
+    }
+    // 다음 획이 붙기 직전: 팽팽하게 조금 더 부풀며 떨림
+    if (st < 2 && !reduce) {
+      const end = STAGE_AT[st + 1] - STAGE_AT[st];
+      const tt = clamp01((t - (end - TENSE)) / TENSE);
+      if (tt > 0) s *= 1 + 0.08 * tt * tt + 0.02 * tt * Math.sin(now * 0.09);
+    }
+    return s;
   }
 
   /* ---------- 캔버스 ---------- */
@@ -825,11 +846,11 @@
 
   // 수련 모양 (봉오리 크기 = 1, 원점 = 가운데): 잎(한쪽이 갈라진 원) + 꽃잎. k: 핀 정도 0..1
   const PAD_R = 0.62, NOTCH = 0.22;
-  // 단단한 봉오리일수록 꽃잎을 더 크게 꼭 오므림
+  // 피기 전에는 잎만 있고 꽃잎은 없음 → 피면서 가운데에서 꽃잎이 돋아 벌어짐
   function budShape(b, k) {
     const petals = [];
-    const c = 0.17 + 0.035 * (b.need - 1), cw = 0.07 - 0.008 * (b.need - 1);
-    for (let i = 0; i < 8; i++) petals.push({ ang: (i / 8) * TAU, len: lerp(c, 0.44, k), w: lerp(cw, 0.16, k) });
+    if (k <= 0.001) return { petals, dot: 0 };
+    for (let i = 0; i < 8; i++) petals.push({ ang: (i / 8) * TAU, len: lerp(0.06, 0.44, k), w: lerp(0.03, 0.16, k) });
     if (k > 0.04) for (let i = 0; i < 6; i++) petals.push({ ang: ((i + 0.5) / 6) * TAU, len: lerp(0.1, 0.27, k), w: lerp(0.05, 0.12, k) });
     return { petals, dot: 0.05 * k };
   }
@@ -928,6 +949,8 @@
         const r0 = big * (1.5 + i * 0.5), life = SQUEEZE + i * 70;
         ring(g.x, g.y, r0, { v: -(r0 - core) / (life * u), life, a: 0.32 - i * 0.07, w: 1.7, inv: true }, now + i * 40);
       }
+      // 터지는 순간: 부푼 글자 둘레에서 바깥으로 짧게 확 튀는 물결
+      if (!reduce) ring(g.x, g.y, big * 1.05, { v: (big * 0.7) / (200 * u), life: 200, a: 0.42, w: 2.4, fade: 0.6 }, now);
       const reach = S0 * Math.sqrt(CORE) * REACH[STAGES[st]];
       ring(g.x, g.y, core, { v: (reach - core) / (520 * u), life: 520, a: 0.38, w: 2.2, fade: 0.9 }, now + SQUEEZE);
       // 소리: 숨을 들이쉬듯 모였다가 낮게 '톡'
@@ -977,6 +1000,8 @@
   const IDLE_WAIT = 9000;
   const PHASE = 3000;
   const GAP = 400;
+  // 꾹 누르기 안내의 한 바퀴 (ms): 누르기 시작 · 떼기 · 파문이 봉오리에 닿음 · 끝
+  const G_PRESS = { hold: 300, release: 2000, reach: 2800, end: 4600 };
   const guide = { a: 0, key: '', t0: 0, told: false, at: null };
   let labelFont = '';
 
@@ -1009,7 +1034,7 @@
     const l = Math.hypot(dx, dy) || 1;
     dx /= l; dy /= l;
     const d = best.s * 0.6 + S0 * (best.need === 1 ? 1.1 : 2.0);
-    return { x: best.x + dx * d, y: best.y + dy * d, key: 'press-' + buds.indexOf(best), need: best.need };
+    return { x: best.x + dx * d, y: best.y + dy * d, key: 'press-' + buds.indexOf(best), need: best.need, bud: best };
   }
 
   // 안내할 것: { key, kind: 'press' | 'pair' | 'flush', x, y, s, side }
@@ -1022,7 +1047,7 @@
       return { key: 'pair', kind: 'pair', x: R.x, y: R.y, s: R.s, side };
     }
     const p = pressSpot(now);
-    return p ? { key: p.key, kind: 'press', x: p.x, y: p.y, s: S0, need: p.need } : null;
+    return p ? { key: p.key, kind: 'press', x: p.x, y: p.y, s: S0, need: p.need, bud: p.bud } : null;
   }
 
   function drawGuide(now, dt) {
@@ -1043,9 +1068,10 @@
       guide.told = true;
       live.textContent = '파문이 닿으면 봉오리가 핍니다. 꾹 누르고 있으면 ㅇ 에 획이 붙어 ㆆ, ㅎ 이 되고 파문이 더 멀리 닿습니다. 떠 있는 글자도 파문을 맞으면 따라 울립니다.';
     }
-    const tp = (now - guide.t0) % (PHASE + GAP);
-    if (tp > PHASE) return;
-    const fade = guide.a * easeOut(clamp01(tp / 250)) * (1 - clamp01((tp - (PHASE - 400)) / 400));
+    const cycle = G.kind === 'press' ? G_PRESS.end : PHASE;
+    const tp = (now - guide.t0) % (cycle + GAP);
+    if (tp > cycle) return;
+    const fade = guide.a * easeOut(clamp01(tp / 250)) * (1 - clamp01((tp - (cycle - 400)) / 400));
     const show = clamp01((tp - 500) / 400);
     const gap = Math.max(12, 0.15 * G.s);
 
@@ -1064,8 +1090,12 @@
       return;
     }
     if (G.kind === 'press') {
-      if (fade > 0.3) guidePhase = '가획';
-      // 손끝이 누르면 작은 원이 퍼지고, 그 자리에 ㅇ 이 맺혀 ㆆ → ㅎ 으로 자람
+      // 한 바퀴: 꾹 누르기(글자가 맺혀 자람) → 떼기(글자가 떨어져 파문) → 파문이 봉오리에 닿음 → 꽃이 핌
+      const P = G_PRESS;
+      const b = G.bud;
+      const holding = tp < P.release;
+      if (fade > 0.3) guidePhase = tp < P.release ? '가획' : '통함';
+      // 손끝이 누르면 작은 원이 퍼짐
       const t = clamp01(tp / 700);
       ctx.globalAlpha = 0.4 * fade * (1 - t);
       ctx.strokeStyle = rgba(ink, 1);
@@ -1073,10 +1103,63 @@
       ctx.beginPath();
       ctx.arc(G.x, G.y, G.s * (0.1 + 0.5 * t), 0, TAU);
       ctx.stroke();
-      // 누르고 있는 것처럼: ㅇ 이 부풀다가 (단단한 봉오리 앞이면) 획이 붙으며 뭉침
-      const fake = { t0: now - Math.max(0, tp - 300) * (G.need === 1 ? 0.6 : G.need === 2 ? 1 : 1.7) };
-      drawGlyph(partsOf(holdShape(fake, now), 0, 1, 1, []), G.x, G.y, G.s * holdScale(fake, now), 0.32 * fade * clamp01((tp - 250) / 250));
-      label('꾹 누르기', G.x + G.s * 0.65 + gap, G.y, G.x - G.s * 0.65 - gap, 0.7 * fade * show);
+      // 누르고 있는 것처럼: ㅇ 이 부풀다가 (단단한 봉오리 앞이면) 획이 붙으며 뭉침.
+      // 봉오리를 피울 수 있는 글자가 될 때까지를 정해진 시간 안에 빨리 보여 줌
+      const holdEnd = G.need === 1 ? 1100 : STAGE_AT[G.need - 1] + SQUEEZE + 250;
+      const speed = holdEnd / (P.release - P.hold);
+      const fake = { t0: now - Math.max(0, Math.min(P.release - P.hold, tp - P.hold)) * speed };
+      const sc = holdScale(fake, now);
+      // 떼면: 수면에 닿아 살짝 눌렸다가 옅어짐
+      const after = clamp01((tp - P.release) / 900);
+      const land = holding ? 1 : lerp(0.9, 1, easeOutBack(clamp01((tp - P.release) / 320)));
+      const ga = 0.32 * fade * clamp01((tp - 250) / 250) * (1 - after * 0.6);
+      drawGlyph(partsOf(holdShape(fake, now), 0, 1, 1, []), G.x, G.y, G.s * sc * land, ga);
+      if (holding) label('꾹 누르기', G.x + G.s * 0.65 + gap, G.y, G.x - G.s * 0.65 - gap, 0.7 * fade * show);
+      else if (tp < P.reach) label('떼기', G.x + G.s * 0.65 + gap, G.y, G.x - G.s * 0.65 - gap, 0.7 * fade);
+      // 파문: 떨어진 자리에서 봉오리까지 퍼짐 (겹 셋)
+      if (b && !holding) {
+        const r0 = G.s * sc * 0.45;
+        const R = Math.hypot(b.x - G.x, b.y - G.y) - b.s * 0.3;
+        ctx.strokeStyle = rgba(ink, 1);
+        for (let i = 0; i < 3; i++) {
+          const k = clamp01((tp - P.release - i * 160) / (P.reach - P.release));
+          if (k <= 0 || k >= 1) continue;
+          ctx.globalAlpha = 0.35 * fade * (1 - i * 0.25) * (1 - k * 0.5);
+          ctx.lineWidth = Math.max(1, 2 * u);
+          ctx.beginPath();
+          ctx.arc(G.x, G.y, lerp(r0, R * 1.08, easeOut(k)), 0, TAU);
+          ctx.stroke();
+        }
+      }
+      // 꽃: 파문이 닿으면 봉오리 위에 옅은 꽃잎이 벌어짐 (진짜 봉오리는 그대로)
+      if (b && !b.open && b.end === Infinity && tp > P.reach) {
+        const k = clamp01(easeOutBack(clamp01((tp - P.reach) / BLOOM)));
+        const sh = budShape(b, k);
+        ctx.save();
+        ctx.translate(b.x, b.y);
+        ctx.scale(b.s, b.s);
+        ctx.rotate(b.rot);
+        ctx.globalAlpha = 0.2 * fade; // 진짜 꽃과 헷갈리지 않게 아주 옅게
+        ctx.fillStyle = rgba(paper, 1);
+        ctx.strokeStyle = rgba(ink, 1);
+        ctx.lineWidth = 0.035;
+        ctx.lineJoin = 'round';
+        for (const p of sh.petals) {
+          ctx.save();
+          ctx.rotate(p.ang);
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.quadraticCurveTo(p.w, -p.len * 0.55, 0, -p.len);
+          ctx.quadraticCurveTo(-p.w, -p.len * 0.55, 0, 0);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+        }
+        ctx.restore();
+        const lx = b.x + b.s * 0.7 + gap;
+        label('꽃이 핌', lx, b.y, b.x - b.s * 0.7 - gap, 0.7 * fade * clamp01((tp - P.reach) / 300));
+      }
     } else {
       if (fade > 0.3) guidePhase = '병서';
       // 옅은 ㅎ 이 옆에서 다가옴
@@ -1152,7 +1235,8 @@
   }
 
   window.hangulPond = {
-    // 연못이 열림 → 가운데에 보이지 않는 ㅇ 하나가 떨어져 첫 파문 (가까운 봉오리 하나가 피어남)
+    // 연못이 열림 → 가운데에 보이지 않는 ㅇ 하나가 떨어져 첫 파문. 처음엔 핀 꽃이 없음
+    // (꽃이 피는 모습은 조작 안내가 옅게 보여 줌)
     land() {
       const h = home();
       const now = performance.now();
@@ -1160,6 +1244,8 @@
       // 이 ㅇ 은 그리지 않고 파문만 남김 (이미 가라앉은 것으로 둬서 다음 프레임에 빠짐)
       const L = addLetter(h.x, h.y, h.s, now);
       L.end = now - SINK * 2;
+      // 첫 파문은 봉오리를 피우지 않음
+      for (const q of rings) if (q.src === L) q.power = 0;
       recent = null;
       lastInput = now;
     },

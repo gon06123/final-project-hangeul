@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ㄴ 불 — 프로토타입</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+  :root { --bg: #0b0a09; --fg: #f3ede6; --muted: #8b847c; --font: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font-family: var(--font); overflow: hidden; }
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; display: block; }
+  .hud { position: fixed; top: max(16px, 2.2vh); left: max(16px, 1.6vw); pointer-events: none; max-width: 320px; }
+  .hud .hanja { font-size: 40px; font-weight: 700; line-height: 1; margin-right: 10px; }
+  .hud .name { font-size: 20px; font-weight: 700; }
+  .hud .sense { margin: 8px 0 0; font-size: 14px; font-weight: 600; color: var(--muted); }
+  .hud .eg { margin: 14px 0 0; font-size: 13px; line-height: 1.7; color: var(--muted); }
+  .hud .eg b { color: var(--fg); font-weight: 700; }
+  .lamps { margin: 14px 0 0; font-size: 15px; letter-spacing: .25em; color: #ffb24a; }
+  .hint {
+    position: fixed; left: 50%; bottom: max(20px, 4vh); transform: translateX(-50%);
+    width: min(560px, calc(100% - 32px)); text-align: center;
+    font-size: 15px; font-weight: 600; line-height: 1.6; color: rgb(243 237 230 / .78);
+    pointer-events: none; transition: opacity .4s;
+  }
+  .win {
+    position: fixed; inset: 0; display: grid; place-content: center; gap: 18px; text-align: center;
+    opacity: 0; pointer-events: none; transition: opacity 1.2s ease 1.2s;
+  }
+  .win.on { opacity: 1; pointer-events: auto; }
+  .win h2 { margin: 0; font-size: clamp(26px, 3vw, 40px); font-weight: 700; }
+  .win p { margin: 0; font-size: 15px; color: var(--muted); }
+  .win button {
+    justify-self: center; padding: 10px 22px; border: 1px solid rgb(255 255 255 / .4); background: none;
+    color: var(--fg); font: 600 14px var(--font); cursor: pointer;
+  }
+  .win button:hover { background: rgb(255 255 255 / .1); }
+  .proto { position: fixed; top: max(16px, 2.2vh); right: max(16px, 1.6vw); font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: .06em; pointer-events: none; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  @media (max-width: 600px) { .hud .eg { display: none; } }
+</style>
+</head>
+<body>
+<canvas id="fire" aria-label="어두운 들판에 ㄴ 들이 흩어져 있습니다. 불빛 안의 ㄴ 을 좌우로 빠르게 문지르면 달아올라 ㄷ, 다시 ㅌ 이 되며 타오르고, 마지막으로 문지른 쪽으로 불티가 튑니다. 불티가 닿은 글자도 달아오릅니다. 등불을 모두 밝히세요."></canvas>
+
+<div class="hud">
+  <div><span class="hanja">火</span><span class="name">불 화</span></div>
+  <p class="sense">확산 · 타오름</p>
+  <p class="eg"><b>가획</b> ㄴ → ㄷ → ㅌ · 비빌수록 달아오름<br><b>병서</b> ㄷ 둘이 붙어 ㄸ · 양쪽으로 큰불</p>
+  <p class="lamps" id="lamps" aria-label="밝힌 등불"></p>
+</div>
+<p class="proto">PROTOTYPE</p>
+<p class="hint" id="hint"></p>
+<div class="win" id="win">
+  <h2>어둠이 걷혔습니다</h2>
+  <p>등불이 모두 이어졌어요.</p>
+  <button type="button" id="again">다시 하기</button>
+</div>
+<p class="sr-only" id="live" aria-live="polite"></p>
+
+<script>
+/* ㄴ 불 — 단독 프로토타입
+   · 화면은 어둡고 ㄴ 들이 흩어져 있음. 불빛(화로·켜진 등불·타는 글자) 안의 글자만 보이고 비빌 수 있음
+   · 비비기 = 가획: 글자 위를 빠르게 좌우로 문지르면 열이 쌓여 ㄴ → ㄷ, 더 비비면 ㅌ 이 되며 타오름
+   · 타오르는 순간, 마지막으로 문지른 쪽으로 불티가 튐. 불티가 닿은 글자도 달아오르고, 충분히 달면 저절로 타오름(연쇄)
+   · 타는 글자는 위로도 작은 불티를 올림 (타오름). 시간이 지나면 재가 되고, 한참 뒤 다시 ㄴ 이 돋음
+   · 병서: 달아오른 ㄷ 둘이 가까우면 붙어서 ㄸ → 두 글자를 잇는 방향의 양쪽으로 큰불
+   · 목표: 어둠 속 등불을 모두 밝히기. 켜진 등불 곁에서도 다시 불을 붙일 수 있음 */
+(() => {
+  const cv = document.getElementById('fire');
+  const ctx = cv.getContext('2d');
+  const hintEl = document.getElementById('hint');
+  const lampsEl = document.getElementById('lamps');
+  const live = document.getElementById('live');
+  const winEl = document.getElementById('win');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  let W = 0, H = 0, DPR = 1, S = 32; // S: 글자 크기(px)
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const smooth = (t) => { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); };
+
+  // 맞춤 값
+  const IGNITE = 2;          // 이만큼 달면 ㅌ 이 되며 타오름 (1 이면 ㄷ)
+  const RUB_K = 5.5;         // 글자 크기 × 이만큼 문지르면 열 1
+  const REV_BONUS = 0.07;    // 방향을 뒤집을 때마다 더하는 열 (좌우로 비비기)
+  const COOL = 0.12;         // 타지 않는 글자가 식는 빠르기 (/초)
+  const LIFE = { 'ㅌ': 7, 'ㄸ': 10 };   // 타는 시간(초)
+  const ASH_BACK = 22;       // 재가 다시 ㄴ 이 되기까지(초)
+
+  let letters = [], lamps = [], sparks = [], flames = [], hearth = null;
+  let won = false, wonAt = 0, firstFire = false, firstDD = false;
+
+  /* ---------- 배치 ---------- */
+  function layout() {
+    DPR = Math.min(2, window.devicePixelRatio || 1);
+    W = innerWidth; H = innerHeight;
+    cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    S = clamp(Math.min(W, H) * 0.042, 22, 46);
+  }
+  const P = (o) => ({ x: o.nx * W, y: o.ny * H });
+
+  function build() {
+    layout();
+    letters = []; sparks = []; flames = []; won = false;
+    winEl.classList.remove('on');
+    hearth = { nx: 0.5, ny: 0.86 };
+    // 등불: 화로에서 먼 위쪽에 셋
+    lamps = [
+      { nx: 0.16, ny: 0.3, lit: false, at: 0 },
+      { nx: 0.84, ny: 0.24, lit: false, at: 0 },
+      { nx: 0.58, ny: 0.1, lit: false, at: 0 },
+    ];
+    if (W < 700) { lamps[0].nx = 0.18; lamps[0].ny = 0.42; lamps[1].nx = 0.82; lamps[1].ny = 0.34; lamps[2].nx = 0.5; lamps[2].ny = 0.16; }
+    // ㄴ 흩뿌리기 (서로 떨어진 자리 고르기)
+    const gap = S * 2.5;
+    const want = Math.floor((W * H) / (gap * gap * 1.25));
+    const hud = { x1: Math.min(340, W * 0.45), y1: W < 600 ? 130 : 230 };
+    let tries = 0;
+    while (letters.length < want && tries++ < want * 60) {
+      const x = rand(S, W - S), y = rand(S * 1.2, H - S * 1.6);
+      if (x < hud.x1 && y < hud.y1) continue;
+      const h = P(hearth);
+      if (Math.hypot(x - h.x, y - h.y) < S * 2.4) continue;
+      if (lamps.some((l) => Math.hypot(x - l.nx * W, y - l.ny * H) < S * 2.3)) continue;
+      if (letters.some((l) => Math.hypot(x - l.nx * W, y - l.ny * H) < gap)) continue;
+      letters.push(newLetter(x / W, y / H));
+    }
+    updateLamps();
+    say('화로 불빛 안의 ㄴ 을 좌우로 빠르게 문질러 보세요.');
+  }
+  function newLetter(nx, ny) {
+    return { nx, ny, h: 0, state: 'cold', type: 'ㄴ', t0: 0, life: 0, dBar: 0, warmAt: -9, rot: rand(-0.12, 0.12), regrow: 0, dir: { x: 0, y: -1 }, hidden: false, from: null, into: null };
+  }
+
+  /* ---------- 빛 ---------- */
+  function lights(now) {
+    const out = [{ ...P(hearth), r: S * 4.6, k: 0.92 + 0.08 * Math.sin(now / 170) }];
+    for (const l of lamps) if (l.lit) out.push({ ...P(l), r: S * 4.2, k: 0.9 });
+    for (const L of letters) if (L.state === 'burn') {
+      const k = intensity(L, now);
+      out.push({ ...P(L), r: S * (L.type === 'ㄸ' ? 6.4 : 4.4) * (0.55 + 0.45 * k), k });
+    }
+    return out;
+  }
+  function lightAt(x, y, ls) {
+    let m = 0;
+    for (const s of ls) {
+      const d = Math.hypot(x - s.x, y - s.y);
+      if (d < s.r) m = Math.max(m, s.k * (1 - smooth(d / s.r) * 0.85) * (d < s.r * 0.9 ? 1 : (s.r - d) / (s.r * 0.1)));
+    }
+    return m;
+  }
+  // 타는 세기: 확 타올랐다가 서서히 사그라듦
+  function intensity(L, now) {
+    const t = (now - L.t0) / 1000, life = L.life;
+    if (t < 0.25) return t / 0.25;
+    return clamp(1 - Math.pow((t - 0.25) / (life - 0.25), 1.8), 0, 1);
+  }
+
+  /* ---------- 불 붙이기 ---------- */
+  function ignite(L, dir, now, type = 'ㅌ') {
+    L.state = 'burn'; L.type = type; L.t0 = now; L.life = LIFE[type]; L.h = IGNITE; L.nextEmber = now + 400;
+    const len = Math.hypot(dir.x, dir.y) || 1;
+    L.dir = { x: dir.x / len, y: dir.y / len };
+    const p = P(L);
+    if (type === 'ㄸ') {
+      // 두 글자를 잇는 방향의 양쪽으로 큰불
+      burst(p, L.dir, 10, 0.55, 0.95, 1.15);
+      burst(p, { x: -L.dir.x, y: -L.dir.y }, 10, 0.55, 0.95, 1.15);
+    } else {
+      burst(p, L.dir, 8, 0.5, 0.8, 1);
+    }
+    if (!firstFire) { firstFire = true; say('불티가 마지막으로 문지른 쪽으로 튑니다. 등불까지 불길을 이어 가세요.'); }
+  }
+  // 불티 한 다발: dir 쪽으로 ±spread 라디안, 열 heat, 멀리 가는 정도 far
+  function burst(p, dir, n, spread, heat, far) {
+    const a0 = Math.atan2(dir.y, dir.x);
+    for (let i = 0; i < n; i++) {
+      const a = a0 + rand(-spread, spread);
+      const v = S * rand(13, 17) * far;
+      sparks.push({ x: p.x, y: p.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, max: rand(1.0, 1.35), heat, trail: [] });
+    }
+  }
+
+  /* ---------- 비비기 ---------- */
+  let down = false, last = null, target = null, prevD = null, rubDir = { x: 1, y: 0 }, darkNoteAt = 0;
+  let pointer = null;
+  cv.addEventListener('pointerdown', (e) => {
+    if (won) return;
+    down = true; last = { x: e.clientX, y: e.clientY }; target = null; prevD = null;
+    cv.setPointerCapture(e.pointerId);
+  });
+  cv.addEventListener('pointermove', (e) => {
+    pointer = { x: e.clientX, y: e.clientY };
+    if (!down || won) return;
+    const now = performance.now();
+    const p = { x: e.clientX, y: e.clientY };
+    const dx = p.x - last.x, dy = p.y - last.y, seg = Math.hypot(dx, dy);
+    last = p;
+    if (seg < 0.5) return;
+    const d = { x: dx / seg, y: dy / seg };
+    rubDir = d;
+    // 비비는 글자: 지금 비비던 글자 곁이면 그대로, 아니면 가장 가까운 글자
+    if (!target || target.state !== 'cold' || Math.hypot(p.x - target.nx * W, p.y - target.ny * H) > S * 1.7) {
+      target = null;
+      let best = S * 1.15;
+      for (const L of letters) {
+        if (L.state !== 'cold') continue;
+        const q = P(L), dd = Math.hypot(p.x - q.x, p.y - q.y);
+        if (dd < best) { best = dd; target = L; }
+      }
+    }
+    if (!target) { prevD = d; return; }
+    const q = P(target);
+    const lit = lightAt(q.x, q.y, lights(now));
+    if (lit < 0.3 && target.h < 0.05) {
+      if (now - darkNoteAt > 2500) { darkNoteAt = now; say('너무 어두워 비벼도 불이 붙지 않아요. 불빛 안의 글자부터 비벼 보세요.'); }
+      prevD = d; return;
+    }
+    let add = seg / (S * RUB_K);
+    if (prevD && d.x * prevD.x + d.y * prevD.y < -0.3) add += REV_BONUS;
+    prevD = d;
+    heat(target, add, now);
+    // 마찰 불꽃 (보이기만)
+    if (Math.random() < 0.5) flames.push({ x: p.x, y: p.y, vx: rand(-30, 30), vy: rand(-60, -20), t: 0, max: rand(0.25, 0.45), r: rand(1, 2), spark: true });
+    if (target.h >= IGNITE) { ignite(target, rubDir, now); target = null; }
+  });
+  const up = () => { down = false; target = null; };
+  cv.addEventListener('pointerup', up);
+  cv.addEventListener('pointercancel', up);
+  cv.addEventListener('pointerleave', () => { pointer = null; });
+
+  function heat(L, add, now) {
+    const before = L.h;
+    L.h = Math.min(IGNITE, L.h + add);
+    L.warmAt = now;
+    if (before < 1 && L.h >= 1) L.dBar = now; // ㄷ 이 되는 순간 (위 획이 그어짐)
+  }
+
+  /* ---------- 병서: 가까운 ㄷ 둘이 붙어 ㄸ ---------- */
+  function checkMerge(now) {
+    const warm = letters.filter((L) => L.state === 'cold' && L.h >= 1 && now - L.dBar > 250);
+    for (let i = 0; i < warm.length; i++) {
+      for (let j = i + 1; j < warm.length; j++) {
+        const A = warm[i], B = warm[j];
+        const a = P(A), b = P(B);
+        if (Math.hypot(a.x - b.x, a.y - b.y) > S * 3.3) continue;
+        // B 가 A 쪽으로 미끄러져 붙음 → A 자리에서 ㄸ 이 타오름
+        B.state = 'slide'; B.t0 = now; B.into = A; B.from = { nx: B.nx, ny: B.ny };
+        A.state = 'wait';
+        setTimeout(() => {
+          const t = performance.now();
+          B.state = 'ash'; B.t0 = t; B.hidden = true;
+          ignite(A, { x: a.x - b.x, y: a.y - b.y }, t, 'ㄸ');
+          if (!firstDD) { firstDD = true; say('달아오른 ㄷ 둘이 붙어 ㄸ — 양쪽으로 큰불이 번집니다.'); }
+        }, reduce ? 50 : 380);
+        return;
+      }
+    }
+  }
+
+  /* ---------- 등불 ---------- */
+  function lightLamp(l, now) {
+    if (l.lit) return;
+    l.lit = true; l.at = now;
+    updateLamps();
+    const n = lamps.filter((x) => x.lit).length;
+    if (n === lamps.length) { won = true; wonAt = now; say('등불을 모두 밝혔습니다. 어둠이 걷혔어요.'); setTimeout(() => winEl.classList.add('on'), 400); }
+    else say(`등불 하나가 켜졌습니다 (${n}/${lamps.length}). 켜진 등불 곁의 글자도 비벼서 불을 붙일 수 있어요.`);
+  }
+  function updateLamps() {
+    lampsEl.textContent = lamps.map((l) => (l.lit ? '●' : '○')).join('');
+    lampsEl.setAttribute('aria-label', `밝힌 등불 ${lamps.filter((l) => l.lit).length} / ${lamps.length}`);
+  }
+
+  function say(m) { hintEl.textContent = m; live.textContent = m; }
+
+  /* ---------- 매 프레임 ---------- */
+  let lastT = performance.now();
+  function step(now) {
+    const dt = Math.min(0.05, (now - lastT) / 1000);
+    lastT = now;
+
+    // 글자 상태
+    for (const L of letters) {
+      if (L.state === 'cold' && L.h > 0 && now - L.warmAt > 1200) {
+        L.h = Math.max(0, L.h - COOL * dt);
+      }
+      if (L.state === 'burn') {
+        const k = intensity(L, now);
+        // 위로 작은 불티 (타오름)
+        if (now > L.nextEmber && k > 0.2) {
+          L.nextEmber = now + rand(500, 900);
+          const p = P(L);
+          burst({ x: p.x, y: p.y - S * 0.4 }, { x: rand(-0.3, 0.3), y: -1 }, 1, 0.7, 0.38, 0.65);
+        }
+        // 불꽃 혀
+        const rate = (L.type === 'ㄸ' ? 48 : 30) * k;
+        const p = P(L);
+        for (let i = 0; i < rate * dt * (reduce ? 0.3 : 1); i++) {
+          const w = L.type === 'ㄸ' ? S * 0.9 : S * 0.45;
+          flames.push({ x: p.x + rand(-w, w), y: p.y + rand(-S * 0.2, S * 0.4), vx: rand(-12, 12), vy: -S * rand(1.6, 3) * (0.6 + 0.4 * k), t: 0, max: rand(0.45, 0.9), r: S * rand(0.12, 0.24) * (0.6 + 0.6 * k) });
+        }
+        // 가까운 등불을 직접 밝힘
+        for (const l of lamps) if (!l.lit && Math.hypot(p.x - l.nx * W, p.y - l.ny * H) < S * 2.6) lightLamp(l, now);
+        if ((now - L.t0) / 1000 > L.life) { L.state = 'ash'; L.t0 = now; }
+      }
+      if (L.state === 'ash' && (now - L.t0) / 1000 > ASH_BACK) {
+        Object.assign(L, newLetter(L.from ? L.from.nx : L.nx, L.from ? L.from.ny : L.ny), { regrow: now });
+      }
+    }
+    checkMerge(now);
+
+    // 불티
+    for (const s of sparks) {
+      s.t += dt;
+      const damp = Math.exp(-2.6 * dt);
+      s.vx *= damp; s.vy = s.vy * damp - S * 2.2 * dt; // 위로 뜨는 기운
+      s.x += s.vx * dt; s.y += s.vy * dt;
+      s.trail.push({ x: s.x, y: s.y }); if (s.trail.length > 7) s.trail.shift();
+      if (s.dead) continue;
+      for (const L of letters) {
+        if (L.state !== 'cold') continue;
+        const q = P(L);
+        if (Math.abs(s.x - q.x) < S * 0.75 && Math.abs(s.y - q.y) < S * 0.75) {
+          heat(L, s.heat * (1 - s.t / s.max * 0.4), now);
+          s.dead = true;
+          for (let i = 0; i < 4; i++) flames.push({ x: s.x, y: s.y, vx: rand(-60, 60), vy: rand(-80, 10), t: 0, max: rand(0.2, 0.4), r: rand(1, 2), spark: true });
+          if (L.h >= IGNITE) ignite(L, { x: s.vx, y: s.vy }, now);
+          break;
+        }
+      }
+      if (!s.dead) for (const l of lamps) {
+        if (!l.lit && Math.hypot(s.x - l.nx * W, s.y - l.ny * H) < S * 0.95) { lightLamp(l, now); s.dead = true; }
+      }
+    }
+    sparks = sparks.filter((s) => s.t < s.max && !(s.dead && s.t > 0) && s.x > -50 && s.x < W + 50 && s.y > -50 && s.y < H + 50);
+
+    // 불꽃 알갱이
+    const hp = P(hearth);
+    for (let i = 0; i < 22 * dt * (reduce ? 0.3 : 1); i++) flames.push({ x: hp.x + rand(-S * 0.5, S * 0.5), y: hp.y - S * 0.1, vx: rand(-8, 8), vy: -S * rand(1.6, 2.6), t: 0, max: rand(0.5, 0.9), r: S * rand(0.14, 0.24) });
+    for (const l of lamps) if (l.lit && Math.random() < 6 * dt) { const p = P(l); flames.push({ x: p.x + rand(-S * 0.12, S * 0.12), y: p.y - S * 0.05, vx: 0, vy: -S * rand(0.8, 1.2), t: 0, max: rand(0.4, 0.6), r: S * 0.1 }); }
+    for (const f of flames) { f.t += dt; f.x += f.vx * dt; f.y += f.vy * dt; f.vx += rand(-40, 40) * dt; }
+    flames = flames.filter((f) => f.t < f.max);
+    if (flames.length > 900) flames.splice(0, flames.length - 900);
+
+    draw(now);
+    requestAnimationFrame(step);
+  }
+
+  /* ---------- 그리기 ---------- */
+  // 글자 모양 (크기 1, 가운데 원점, 아래가 +y). 각 칸은 [x, y, w, h]
+  const T = 0.17;
+  const SHAPES = {
+    'ㄴ': [[-0.42, -0.5, T, 1], [-0.42, 0.5 - T, 0.84, T]],
+    'ㄷ': [[-0.42, -0.5, 0.84, T], [-0.42, -0.5, T, 1], [-0.42, 0.5 - T, 0.84, T]],
+    'ㅌ': [[-0.42, -0.5, 0.84, T], [-0.42, -0.5, T, 1], [-0.42, -T / 2, 0.76, T], [-0.42, 0.5 - T, 0.84, T]],
+  };
+  function drawLetter(L, p, now, col) {
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(L.rot);
+    ctx.scale(S, S);
+    ctx.fillStyle = col;
+    if (L.type === 'ㄸ') {
+      for (const sx of [-0.27, 0.27]) {
+        ctx.save(); ctx.translate(sx, 0); ctx.scale(0.5, 1);
+        for (const r of SHAPES['ㄷ']) ctx.fillRect(r[0], r[1], r[2], r[3]);
+        ctx.restore();
+      }
+    } else {
+      const sh = L.state === 'burn' ? SHAPES['ㅌ'] : L.h >= 1 ? SHAPES['ㄷ'] : SHAPES['ㄴ'];
+      sh.forEach((r, i) => {
+        let w = r[2];
+        // ㄷ 의 위 획이 그어지는 모양
+        if (sh === SHAPES['ㄷ'] && i === 0) w *= smooth((now - L.dBar) / 260);
+        if (sh === SHAPES['ㅌ'] && i === 2) w *= smooth((now - L.t0) / 200);
+        ctx.fillRect(r[0], r[1], w, r[3]);
+      });
+    }
+    ctx.restore();
+  }
+  const mix = (a, b, t) => a.map((v, i) => Math.round(lerp(v, b[i], t)));
+  const rgb = (c, a = 1) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+  const GRAY = [150, 143, 135], RED = [196, 52, 30], ORANGE = [255, 140, 40], GOLD = [255, 214, 140], ASH = [70, 64, 60];
+
+  function draw(now) {
+    const dawn = won ? smooth((now - wonAt) / 2500) : 0;
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = rgb(mix([11, 10, 9], [46, 30, 22], dawn));
+    ctx.fillRect(0, 0, W, H);
+
+    const ls = lights(now);
+    // 불빛
+    ctx.globalCompositeOperation = 'lighter';
+    for (const s of ls) {
+      const g = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r * 1.15);
+      g.addColorStop(0, `rgba(255,120,40,${0.32 * s.k})`);
+      g.addColorStop(0.45, `rgba(200,70,20,${0.12 * s.k})`);
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r * 1.15, 0, Math.PI * 2); ctx.fill();
+    }
+    // 등불끼리 잇는 불길 (다 밝힌 뒤)
+    if (won) {
+      const k = smooth((now - wonAt) / 1600);
+      ctx.strokeStyle = `rgba(255,170,70,${0.55 * k})`;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 8]); ctx.lineDashOffset = -now / 40;
+      const pts = [P(hearth), ...lamps.map(P)];
+      ctx.beginPath();
+      pts.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
+      ctx.stroke(); ctx.setLineDash([]);
+    }
+    ctx.globalCompositeOperation = 'source-over';
+
+    // 화로
+    const hp = P(hearth);
+    ctx.fillStyle = 'rgb(60,48,40)';
+    ctx.beginPath(); ctx.ellipse(hp.x, hp.y + S * 0.35, S * 0.95, S * 0.28, 0, 0, Math.PI); ctx.fill();
+    ctx.fillRect(hp.x - S * 0.95, hp.y + S * 0.3, S * 1.9, S * 0.08);
+
+    // 등불
+    for (const l of lamps) {
+      const p = P(l);
+      const k = l.lit ? smooth((now - l.at) / 600) : 0;
+      ctx.save(); ctx.translate(p.x, p.y);
+      ctx.strokeStyle = l.lit ? rgb(GOLD) : `rgba(200,180,150,${0.28 + 0.1 * Math.sin(now / 600 + p.x)})`;
+      ctx.lineWidth = Math.max(1.5, S * 0.06);
+      ctx.beginPath(); ctx.moveTo(-S * 0.12, -S * 0.62); ctx.lineTo(S * 0.12, -S * 0.62); ctx.stroke(); // 고리
+      ctx.beginPath(); ctx.roundRect(-S * 0.3, -S * 0.5, S * 0.6, S * 0.85, S * 0.14); ctx.stroke();
+      if (k > 0) { ctx.fillStyle = `rgba(255,190,90,${0.85 * k})`; ctx.fill(); }
+      ctx.restore();
+    }
+
+    // 글자
+    for (const L of letters) {
+      if (L.hidden && L.state === 'ash') continue;
+      let p = P(L);
+      if (L.state === 'slide') {
+        const t = smooth((now - L.t0) / (reduce ? 50 : 380));
+        const to = P(L.into);
+        p = { x: lerp(L.from.nx * W, to.x, t), y: lerp(L.from.ny * H, to.y, t) };
+      }
+      const vis = 0.06 + 0.94 * smooth(lightAt(p.x, p.y, ls) / 0.7);
+      let col;
+      if (L.state === 'burn') {
+        const k = intensity(L, now);
+        const fl = 0.85 + 0.15 * Math.sin(now / 45 + p.x);
+        col = rgb(mix(RED, GOLD, k * fl));
+      } else if (L.state === 'ash') {
+        col = rgb(ASH, 0.25 + 0.6 * vis);
+      } else {
+        const h = L.h / IGNITE;
+        const c = h < 0.5 ? mix(GRAY, RED, h * 2) : mix(RED, ORANGE, (h - 0.5) * 2);
+        const glow = Math.max(vis, h * 0.9);
+        const grow = L.regrow ? smooth((now - L.regrow) / 900) : 1;
+        col = rgb(c, glow * grow);
+      }
+      drawLetter(L, p, now, col);
+    }
+
+    // 불꽃·불티 (빛 더하기)
+    ctx.globalCompositeOperation = 'lighter';
+    for (const f of flames) {
+      const u = f.t / f.max;
+      if (f.spark) { ctx.fillStyle = `rgba(255,200,120,${1 - u})`; ctx.fillRect(f.x, f.y, f.r, f.r); continue; }
+      const c = mix(GOLD, RED, u);
+      ctx.fillStyle = rgb(c, 0.5 * (1 - u));
+      ctx.beginPath(); ctx.ellipse(f.x, f.y, f.r * (1 - u * 0.6), f.r * 1.6 * (1 - u * 0.5), 0, 0, Math.PI * 2); ctx.fill();
+    }
+    for (const s of sparks) {
+      const u = s.t / s.max;
+      ctx.strokeStyle = `rgba(255,190,100,${0.8 * (1 - u)})`;
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      s.trail.forEach((q, i) => (i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y)));
+      ctx.stroke();
+      ctx.fillStyle = `rgba(255,236,190,${1 - u})`;
+      ctx.fillRect(s.x - 1.5, s.y - 1.5, 3, 3);
+    }
+    ctx.globalCompositeOperation = 'source-over';
+
+    // 손끝: 비빌 수 있는 글자 위면 고리
+    if (pointer && !won) {
+      let near = null, best = S * 1.15;
+      for (const L of letters) {
+        if (L.state !== 'cold') continue;
+        const q = P(L), d = Math.hypot(pointer.x - q.x, pointer.y - q.y);
+        if (d < best) { best = d; near = L; }
+      }
+      if (near) {
+        const q = P(near);
+        const ok = lightAt(q.x, q.y, ls) >= 0.3 || near.h >= 0.05;
+        ctx.strokeStyle = ok ? 'rgba(255,190,110,.55)' : 'rgba(255,255,255,.12)';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.arc(q.x, q.y, S * 0.95, 0, Math.PI * 2); ctx.stroke();
+        // 달아오른 정도
+        if (near.h > 0) {
+          ctx.strokeStyle = 'rgba(255,140,40,.9)'; ctx.lineWidth = 2.4;
+          ctx.beginPath(); ctx.arc(q.x, q.y, S * 0.95, -Math.PI / 2, -Math.PI / 2 + (near.h / IGNITE) * Math.PI * 2); ctx.stroke();
+        }
+      }
+    }
+  }
+
+  document.getElementById('again').addEventListener('click', build);
+  let rt = 0;
+  addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(layout, 120); });
+  build();
+  requestAnimationFrame(step);
+})();
+</script>
+</body>
+</html>

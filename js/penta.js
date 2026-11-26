@@ -178,8 +178,10 @@
     const letterPx = Math.min(H * 0.2, W * 0.3);
     letterUnits = (letterPx * R) / rPx; // px → viewBox 단위
 
-    // 옆 칸 글자: 가운데가 화면 옆(또는 아래) 가장자리 조금 바깥 → 글자의 40% 쯤만 살짝 보임
-    const peek = letterPx * 0.1;
+    // 옆 칸 글자: 가운데가 화면 옆(또는 아래) 가장자리에서 안쪽으로 SIDE_IN 만큼 → 글자가 70~80% 쯤 보임
+    // (0 이면 반쯤, 음수면 더 바깥으로 숨음)
+    const SIDE_IN = 0.3;
+    const peek = -letterPx * SIDE_IN;
     const clamp1 = (v) => Math.max(-1, Math.min(1, v));
     const byX = Math.asin(clamp1((W / 2 + peek) / rPx));
     const byY = Math.acos(clamp1(1 - (H * 0.6 + peek) / rPx));
@@ -543,7 +545,7 @@
         l.from = { x: W / 2 + (l.k - 2) * 1.6 * L, y: cy, s: L };
         l.outer.setAttribute('transform', `translate(${l.from.x} ${l.from.y}) scale(${L})`);
       });
-      text.style.setProperty('--intro-text-top', `${cy + L * 0.5 + Math.max(28, H * 0.045)}px`);
+      text.style.setProperty('--intro-text-top', `${cy + L * 0.5 + Math.max(80, H * 0.13)}px` /* 자음과 제목 사이를 넉넉히 */);
     }
     introLayout();
     window.addEventListener('resize', introLayout);

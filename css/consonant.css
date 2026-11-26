@@ -317,7 +317,7 @@ body:not([data-view="penta"]) .penta { visibility: hidden; transition: visibilit
   left: 50%;
   top: var(--intro-text-top, 55%);
   transform: translateX(-50%);
-  width: min(640px, calc(100% - 32px));
+  width: min(860px, calc(100% - 32px));
   text-align: center;
 }
 .intro-text > * {
@@ -326,24 +326,24 @@ body:not([data-view="penta"]) .penta { visibility: hidden; transition: visibilit
   animation: intro-rise .6s cubic-bezier(.22, 1, .36, 1) var(--d) forwards;
 }
 .intro-title {
-  font-size: max(26px, min(2.083vw, 3.704vh));
+  font-size: max(32px, min(2.708vw, 4.815vh));
   font-weight: 700;
   letter-spacing: -.03em;
   line-height: 1.25;
 }
 .intro-desc {
-  font-size: max(15px, min(.938vw, 1.667vh));
+  font-size: max(17px, min(1.25vw, 2.222vh));
   line-height: 1.6;
   color: var(--soft);
 }
-.intro-title + .intro-desc { margin-top: max(12px, min(.625vw, 1.111vh)); }
+.intro-title + .intro-desc { margin-top: max(16px, min(.938vw, 1.667vh)); }
 .intro-hint {
   display: inline-block;
-  margin-top: max(24px, min(1.667vw, 2.963vh));
+  margin-top: max(32px, min(2.083vw, 3.704vh));
   padding: 8px 12px;
   border: 0;
   background: none;
-  font-size: max(13px, min(.729vw, 1.296vh));
+  font-size: max(15px, min(.885vw, 1.574vh));
   font-weight: 600;
   letter-spacing: .04em;
   color: var(--muted);

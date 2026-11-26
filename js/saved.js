@@ -1,5 +1,5 @@
 /* 저장 버튼 공통 (js/consonant.js 의 ㄱ 나무, js/pond.js 의 ㅇ 연못 이 부름):
-   SVG 파일을 내려받고, 저장한 그림을 화면 가운데 창에 띄움. 창에서 바로 공유·PNG 저장.
+   바로 내려받지 않고, 먼저 지금 화면의 그림을 가운데 창에 미리 보여 줌. 창에서 공유·SVG 저장·PNG 저장.
    (파일 공유가 안 되는 브라우저에서는 공유 버튼이 이미지를 클립보드에 복사함)
    공유는 PNG 로 (SNS·메신저 앱 대부분이 SVG 를 못 받음). PNG 는 창이 열릴 때 미리 만들어 둠 →
    공유 버튼을 누른 그 순간에 공유 창을 열 수 있음 (브라우저는 누른 직후에만 공유 창을 허락함) */
@@ -11,9 +11,11 @@
   const en = () => document.documentElement.lang === 'en';
   const T = {
     share: ['공유하기', 'Share'],
+    svg: ['SVG 저장', 'Save SVG'],
     png: ['PNG 저장', 'Save PNG'],
     close: ['닫기', 'Close'],
-    saved: ['SVG 파일로 저장했습니다', 'Saved as an SVG file'],
+    preview: ['지금 화면', 'Your snapshot'],
+    done: ['저장했습니다', 'Saved'],
     copied: ['복사했습니다 — 붙여 넣어 공유하세요', 'Copied — paste it to share'],
     failed: ['복사하지 못했습니다', 'Could not copy'],
   };
@@ -62,7 +64,7 @@
       if (!el.dataset.busy) el.textContent = t(el.dataset.t);
     });
     dlg.querySelector('.saved-close').setAttribute('aria-label', t('close'));
-    dlg.querySelector('.saved-note').textContent = `${t('saved')} · ${cur ? cur.name : ''}.svg`;
+    dlg.querySelector('.saved-note').textContent = `${t('preview')} · ${cur ? cur.name : ''}`;
   }
   // 버튼 글자를 잠깐 바꿨다가 되돌림
   function flash(btn, msg) {
@@ -76,10 +78,9 @@
   window.saveImage = (svg, name, title) => {
     const blob = new Blob([svg], { type: 'image/svg+xml' });
     const file = `${name}-${stampNow()}`;
-    download(blob, `${file}.svg`);
-    if (!dlg) return;
+    if (!dlg) { download(blob, `${file}.svg`); return; } // 창이 없으면 예전처럼 바로 저장
     if (cur) URL.revokeObjectURL(cur.svgUrl);
-    cur = { name: file, title, svgUrl: URL.createObjectURL(blob), pngBlob: null };
+    cur = { name: file, title, blob, svgUrl: URL.createObjectURL(blob), pngBlob: null };
     cur.png = toPNG(blob).then((b) => { if (cur && cur.name === file) cur.pngBlob = b; return b; });
     cur.png.catch(() => {});
     img.src = cur.svgUrl;
@@ -88,7 +89,7 @@
     dlg.classList.remove('is-closing');
     if (typeof dlg.showModal === 'function') { if (!dlg.open) dlg.showModal(); } else dlg.setAttribute('open', '');
     dlg.querySelector('[data-act="share"]').focus({ preventScroll: true });
-    say(`${t('saved')}.`);
+    say(`${t('preview')}. ${t('share')} · ${t('svg')} · ${t('png')}`);
   };
 
   if (!dlg) return;
@@ -140,7 +141,8 @@
     if (btn && cur) {
       const act = btn.dataset.act;
       if (act === 'share') share(btn);
-      else if (act === 'png') cur.png.then((b) => download(b, `${cur.name}.png`), () => flash(btn, t('failed')));
+      else if (act === 'svg') { download(cur.blob, `${cur.name}.svg`); flash(btn, t('done')); }
+      else if (act === 'png') cur.png.then((b) => { download(b, `${cur.name}.png`); flash(btn, t('done')); }, () => flash(btn, t('failed')));
       return;
     }
     // 창 안(그림·버튼 줄) 바깥, 곧 어두운 바탕을 누르면 닫힘
